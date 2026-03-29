@@ -1,0 +1,17 @@
+// Async Zen in Peel
+async fn get_zen() -> string {
+    let url = "https://api.github.com/zen";
+    let res = await http.get(url);
+    
+    match res {
+        Ok(text) => return text,
+        Err(e)   => return "Failed to fetch zen",
+    }
+}
+
+async fn main() {
+    let msg = await get_zen();
+    fmt.println("GitHub Zen:", msg);
+}
+
+main();

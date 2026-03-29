@@ -1,0 +1,7 @@
+// Hello World in Peel
+fn main() {
+    let msg = "Hello from Peel!";
+    fmt.println(msg);
+}
+
+main();

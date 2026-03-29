@@ -1,0 +1,93 @@
+// Peel Comprehensive Test Suite
+// This script tests all coare language features and standard library modules.
+
+async fn test_math() {
+    let a = 10;
+    let b = 20;
+    let sum = a + b;
+    let diff = b - a;
+    let prod = a * b;
+    let quot = b / a;
+    
+    fmt.println("Math Test:");
+    fmt.println("  10 + 20 =", sum);
+    fmt.println("  20 - 10 =", diff);
+    fmt.println("  10 * 20 =", prod);
+    fmt.println("  20 / 10 =", quot);
+}
+
+async fn test_logic(val: bool) -> string {
+    if val {
+        return "Value is true";
+    } else {
+        return "Value is false";
+    }
+}
+
+async fn test_match(res: Result<string, string>) {
+    fmt.println("Match Test:");
+    match res {
+        Ok(msg) => fmt.println("  Success:", msg),
+        Err(e)  => fmt.println("  Failure:", e),
+    };
+}
+
+async fn test_objects() {
+    let user = {
+        name: "Peel Coder",
+        level: 99,
+        active: true
+    };
+    
+    fmt.println("Object Test:");
+    fmt.println("  Name:", user.name);
+    fmt.println("  Level:", user.level);
+}
+
+async fn test_stdlib() {
+    fmt.println("StdLib Test:");
+    
+    // 1. Time
+    fmt.println("  Sleeping for 100ms...");
+    time.sleep(100);
+    
+    // 2. FS
+    let test_file = "test_output.txt";
+    let content = "Hello from Peel FS test!";
+    fmt.println("  Writing to file:", test_file);
+    fs.write_to_string(test_file, content);
+    
+    let read_res = await fs.read_to_string(test_file);
+    match read_res {
+        Ok(text) => fmt.println("  Read from file:", text),
+        Err(e)   => fmt.println("  FS Error:", e)
+    };
+    
+    // 3. HTTP
+    fmt.println("  Fetching from GitHub Zen...");
+    let zen_res = await http.get("https://api.github.com/zen");
+    match zen_res {
+        Ok(zen) => fmt.println("  Zen of the day:", zen),
+        Err(e)  => fmt.println("  HTTP Error:", e)
+    };
+}
+
+async fn main() {
+    fmt.println("--- PEEL TEST SUITE START ---");
+    
+    await test_math();
+    
+    let logic_res = await test_logic(true);
+    fmt.println("Logic Test:", logic_res);
+    
+    await test_match(Ok("Everything is fine"));
+    await test_match(Err("Something went wrong"));
+    
+    await test_objects();
+    
+    await test_stdlib();
+    
+    fmt.println("--- PEEL TEST SUITE COMPLETE ---");
+}
+
+main();

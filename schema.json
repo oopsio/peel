@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pepm Registry Index",
+  "description": "Schema for the Peel Package Manager (pepm) registry index.",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string", "description": "The name of the registry." },
+    "version": { "type": "string", "description": "The registry version." },
+    "packages": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "author": { "type": "string" },
+          "license": { "type": "string" },
+          "repository": { "type": "string" },
+          "versions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "version": { "type": "string" },
+                "dependencies": {
+                  "type": "object",
+                  "additionalProperties": { "type": "string" }
+                },
+                "dist": {
+                  "type": "object",
+                  "properties": {
+                    "tarball": { "type": "string" },
+                    "shasum": { "type": "string" }
+                  },
+                  "required": ["tarball"]
+                },
+                "main": { "type": "string", "description": "Entry point file." }
+              },
+              "required": ["version", "dist"]
+            }
+          },
+          "latest": { "type": "string" }
+        },
+        "required": ["name", "versions"]
+      }
+    }
+  },
+  "required": ["packages"]
+}

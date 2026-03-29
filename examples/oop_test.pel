@@ -1,0 +1,40 @@
+// Peel OOP Test Script
+// Demonstrating structs, impl blocks, methods, and self mutation.
+
+struct User {
+    name: string,
+    age: int,
+}
+
+impl User {
+    fn greet(self) {
+        fmt.println("Profile: Name =", self.name, ", Age =", self.age);
+    }
+    
+    async fn celebrate(mut self) {
+        fmt.println("It's", self.name, "'s birthday!");
+        self.age = self.age + 1;
+        fmt.println("Now Age is:", self.age);
+    }
+}
+
+async fn main() {
+    fmt.println("--- PEEL OOP TEST START ---");
+    
+    // 1. Instantiation
+    let u = User { name: "Alice", age: 30 };
+    
+    // 2. Synchronous Method Call
+    u.greet();
+    
+    // 3. Asynchronous Method Call with Mutation
+    fmt.println("Calling celebrate()...");
+    await u.celebrate();
+    
+    // 4. Verify Mutation
+    u.greet();
+    
+    fmt.println("--- PEEL OOP TEST COMPLETE ---");
+}
+
+main();
