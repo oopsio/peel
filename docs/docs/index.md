@@ -19,8 +19,14 @@ Peel combines the safety guarantees of functional programming with the performan
 
 You can install the Peel toolchain via the official installer script:
 
+```powershell
+irm https://raw.githubusercontent.com/oopsio/peel/master/tools/installation/install.ps1 | iex
+```
+
+or for Bash users
+
 ```bash
-curl -sSf https://peel-lang.org/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/oopsio/peel/master/tools/installation/install.sh | sh
 ```
 
 Verify your installation:
