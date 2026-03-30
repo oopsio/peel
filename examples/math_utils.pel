@@ -1,5 +1,4 @@
-export fn add(a: number, b: number) {
-    return a + b
+export fn add(a: float, b: float) {
+    return a + b;
 }
-
-export let pi = 3.14
+export let pi = 3.14;

@@ -516,11 +516,19 @@ impl Interpreter {
                         _ => Err(anyhow!("Invalid operator for strings")),
                     },
                     (PeelValue::String(a), b) => match op {
-                        Op::Add => Ok(PeelValue::String(format!("{}{}", a, peel_value_to_string(&b)))),
+                        Op::Add => Ok(PeelValue::String(format!(
+                            "{}{}",
+                            a,
+                            peel_value_to_string(&b)
+                        ))),
                         _ => Err(anyhow!("Invalid operator for string and non-string")),
                     },
                     (a, PeelValue::String(b)) => match op {
-                        Op::Add => Ok(PeelValue::String(format!("{}{}", peel_value_to_string(&a), b))),
+                        Op::Add => Ok(PeelValue::String(format!(
+                            "{}{}",
+                            peel_value_to_string(&a),
+                            b
+                        ))),
                         _ => Err(anyhow!("Invalid operator for non-string and string")),
                     },
                     _ => Err(anyhow!("Type mismatch in binary operation")),

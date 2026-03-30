@@ -1,12 +1,11 @@
-
-use peel::parser::Parser;
-use peel::checker::Checker;
-use peel::runtime::Interpreter;
-use peel::stdlib::register_stdlib;
-use peel::lsp::start_lsp;
-use peel::ast::types::PeelType;
 use anyhow::Result;
 use clap::{Parser as ClapParser, Subcommand};
+use peel::ast::types::PeelType;
+use peel::checker::Checker;
+use peel::lsp::start_lsp;
+use peel::parser::Parser;
+use peel::runtime::Interpreter;
+use peel::stdlib::register_stdlib;
 use std::fs;
 
 #[derive(ClapParser)]
