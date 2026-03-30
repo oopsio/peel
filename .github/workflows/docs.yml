@@ -26,9 +26,9 @@ jobs:
       - run: pip install zensical
       - run: |
           cd docs
-          zensical build -f ../zensical.yaml --clean
+          zensical build -f ./zensical.toml --clean
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: docs/site
       - uses: actions/deploy-pages@v4
         id: deployment
