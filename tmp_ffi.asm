@@ -1,1 +1,0 @@
-global sub_asm\nsection .text\nsub_asm:\nmov rax, rcx\nsub rax, rdx\nret\n
