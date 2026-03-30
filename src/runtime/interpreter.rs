@@ -129,6 +129,35 @@ impl Interpreter {
                 }
                 Ok(PeelValue::Void)
             }
+            Stmt::While { cond, body } => {
+                while let PeelValue::Bool(true) = self.eval_expr(cond).await? {
+                    for s in body {
+                        let res = self.eval_stmt(s).await?;
+                        if let PeelValue::Return(_) = res {
+                            return Ok(res);
+                        }
+                    }
+                }
+                Ok(PeelValue::Void)
+            }
+            Stmt::For { var, iter, body } => {
+                let iter_val = self.eval_expr(iter).await?;
+                if let PeelValue::List(l) = iter_val {
+                    let items = l.lock().unwrap().clone();
+                    for item in items {
+                        self.env.write().unwrap().define(var.clone(), item);
+                        for s in body {
+                            let res = self.eval_stmt(s).await?;
+                            if let PeelValue::Return(_) = res {
+                                return Ok(res);
+                            }
+                        }
+                    }
+                } else {
+                    return Err(anyhow!("Cannot iterate over non-array type"));
+                }
+                Ok(PeelValue::Void)
+            }
             Stmt::Return(expr) => {
                 let val = if let Some(e) = expr {
                     self.eval_expr(e).await?
@@ -486,6 +515,14 @@ impl Interpreter {
                         Op::Eq => Ok(PeelValue::Bool(a == b)),
                         _ => Err(anyhow!("Invalid operator for strings")),
                     },
+                    (PeelValue::String(a), b) => match op {
+                        Op::Add => Ok(PeelValue::String(format!("{}{}", a, peel_value_to_string(&b)))),
+                        _ => Err(anyhow!("Invalid operator for string and non-string")),
+                    },
+                    (a, PeelValue::String(b)) => match op {
+                        Op::Add => Ok(PeelValue::String(format!("{}{}", peel_value_to_string(&a), b))),
+                        _ => Err(anyhow!("Invalid operator for non-string and string")),
+                    },
                     _ => Err(anyhow!("Type mismatch in binary operation")),
                 }
             }
@@ -754,5 +791,26 @@ impl Interpreter {
             }
         }
         Err(anyhow!("Module not found: {}", path))
+    }
+}
+
+fn peel_value_to_string(val: &PeelValue) -> String {
+    match val {
+        PeelValue::Int(i) => i.to_string(),
+        PeelValue::Float(f) => f.to_string(),
+        PeelValue::String(s) => s.clone(),
+        PeelValue::Bool(b) => b.to_string(),
+        PeelValue::Void => "void".to_string(),
+        PeelValue::List(l) => format!("{:?}", l.lock().unwrap()),
+        PeelValue::Map(m) => format!("{:?}", m.lock().unwrap()),
+        PeelValue::Object { struct_name, .. } => {
+            if let Some(name) = struct_name {
+                name.clone()
+            } else {
+                "object".to_string()
+            }
+        }
+        PeelValue::Function(f) => format!("<fn {}>", f.name),
+        _ => "unknown".to_string(),
     }
 }

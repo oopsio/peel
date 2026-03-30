@@ -1,12 +1,10 @@
-mod ast;
-mod checker;
-mod lexer;
-mod lsp;
-mod parser;
-mod runtime;
-mod stdlib;
 
-use crate::parser::Parser;
+use peel::parser::Parser;
+use peel::checker::Checker;
+use peel::runtime::Interpreter;
+use peel::stdlib::register_stdlib;
+use peel::lsp::start_lsp;
+use peel::ast::types::PeelType;
 use anyhow::Result;
 use clap::{Parser as ClapParser, Subcommand};
 use std::fs;
@@ -53,23 +51,24 @@ async fn run_cli() -> Result<()> {
             let module = parser.parse_module()?;
 
             // 1. Type Check
-            let mut checker = crate::checker::Checker::new();
-            checker.define("fmt", crate::ast::types::PeelType::Unknown, false);
-            checker.define("time", crate::ast::types::PeelType::Unknown, false);
-            checker.define("http", crate::ast::types::PeelType::Unknown, false);
-            checker.define("fs", crate::ast::types::PeelType::Unknown, false);
-            checker.define("console", crate::ast::types::PeelType::Unknown, false);
-            checker.define("Math", crate::ast::types::PeelType::Unknown, false);
-            checker.define("JSON", crate::ast::types::PeelType::Unknown, false);
+            let mut checker = Checker::new();
+            checker.define("fmt", PeelType::Unknown, false);
+            checker.define("time", PeelType::Unknown, false);
+            checker.define("http", PeelType::Unknown, false);
+            checker.define("fs", PeelType::Unknown, false);
+            checker.define("console", PeelType::Unknown, false);
+            checker.define("Math", PeelType::Unknown, false);
+            checker.define("JSON", PeelType::Unknown, false);
+            checker.define("sqlite", PeelType::Unknown, false);
             checker.check_module(&module)?;
 
             // 2. Initialize Runtime & StdLib
-            let mut interpreter = crate::runtime::Interpreter::new();
+            let mut interpreter = Interpreter::new();
             interpreter.current_path = std::path::Path::new(&path)
                 .parent()
                 .unwrap_or(std::path::Path::new("."))
                 .to_path_buf();
-            crate::stdlib::register_stdlib(interpreter.env.clone(), interpreter.methods.clone());
+            register_stdlib(interpreter.env.clone(), interpreter.methods.clone());
 
             // 3. Execute
             for stmt in &module.stmts {
@@ -83,7 +82,7 @@ async fn run_cli() -> Result<()> {
             println!("{:#?}", module);
         }
         Commands::Lsp => {
-            crate::lsp::start_lsp().await;
+            start_lsp().await;
         }
     }
 

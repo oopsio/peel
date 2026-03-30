@@ -1,0 +1,59 @@
+// Peel SQLite Standard Library Example
+// This demo shows how to open a database, create tables, insert data, and query it.
+
+fmt.println("--- SQLite StdLib Demo ---");
+
+// 1. Open a connection (use ":memory:" for a temporary in-memory database)
+let db = sqlite.open(":memory:");
+fmt.println("Opened in-memory database.");
+
+// 2. Create a table
+// Connection.execute(sql: string, params: Array)
+db.execute("CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, grade REAL, graduated BOOL)", []);
+fmt.println("Created table 'students'.");
+
+// 3. Insert data with parameters to prevent SQL injection
+let students = [
+    ["Alice", 95.5, true],
+    ["Bob", 82.0, false],
+    ["Charlie", 78.5, false],
+    ["Diana", 99.0, true]
+];
+
+for student in students {
+    fmt.println("Inserting student: " + student[0]);
+    db.execute("INSERT INTO students (name, grade, graduated) VALUES (?, ?, ?)", student);
+}
+
+// 4. Query data using SELECT
+// Connection.query(sql: string, params: Array) returns an Array of Objects
+fmt.println("\nQuerying all students:");
+let all_students = db.query("SELECT * FROM students ORDER BY grade DESC", []);
+
+for row in all_students {
+    fmt.println("- [" + row.id + "] " + row.name + " (" + row.grade + ") - Graduated: " + row.graduated);
+}
+
+// 5. Query with filters
+let search_name = "Alice";
+fmt.println("\nSearching for '" + search_name + "':");
+let result = db.query("SELECT * FROM students WHERE name = ?", [search_name]);
+
+if result.len() > 0 {
+    fmt.println("Found: " + result[0].name + " has grade " + result[0].grade);
+} else {
+    fmt.println("Student not found.");
+}
+
+// 6. Update data
+db.execute("UPDATE students SET graduated = ? WHERE name = ?", [true, "Bob"]);
+fmt.println("\nUpdated Bob's graduation status.");
+
+// 7. Verify update
+let bob = db.query("SELECT graduated FROM students WHERE name = ?", ["Bob"]);
+fmt.println("Bob's new status: " + bob[0].graduated);
+
+// 8. Close connection
+db.close();
+fmt.println("\nDatabase connection closed.");
+fmt.println("--- Demo Finished ---");

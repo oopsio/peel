@@ -141,6 +141,10 @@ impl<'a> Parser<'a> {
             self.parse_struct_stmt()?
         } else if self.match_token(Token::Extern) {
             self.parse_extern_block()?
+        } else if self.match_token(Token::While) {
+            self.parse_while_stmt()?
+        } else if self.match_token(Token::For) {
+            self.parse_for_stmt()?
         } else if self.match_token(Token::Impl) {
             self.parse_impl_stmt()?
         } else {
@@ -453,6 +457,22 @@ impl<'a> Parser<'a> {
             then_branch,
             else_branch,
         })
+    }
+
+    fn parse_while_stmt(&mut self) -> Result<Stmt> {
+        let cond = self.parse_expr()?;
+        self.consume(Token::LBrace, "Expected '{' after while condition")?;
+        let body = self.parse_block()?;
+        Ok(Stmt::While { cond, body })
+    }
+
+    fn parse_for_stmt(&mut self) -> Result<Stmt> {
+        let var = self.consume_ident("Expected identifier after 'for'")?;
+        self.consume(Token::In, "Expected 'in' after for loop variable")?;
+        let iter = self.parse_expr()?;
+        self.consume(Token::LBrace, "Expected '{' after for loop expression")?;
+        let body = self.parse_block()?;
+        Ok(Stmt::For { var, iter, body })
     }
 
     fn parse_expr(&mut self) -> Result<Expr> {

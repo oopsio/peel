@@ -356,11 +356,7 @@ impl Checker {
                     if element_ty == PeelType::Unknown {
                         element_ty = ty;
                     } else if !ty.matches(&element_ty) {
-                        return Err(anyhow!(
-                            "Array element type mismatch: expected {:?}, got {:?}",
-                            element_ty,
-                            ty
-                        ));
+                        element_ty = PeelType::Unknown; // Fallback to mixed array
                     }
                 }
                 Ok(PeelType::List(Box::new(element_ty)))
