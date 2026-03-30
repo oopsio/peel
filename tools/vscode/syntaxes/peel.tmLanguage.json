@@ -1,0 +1,75 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Peel",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#numbers"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.peel",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.peel",
+          "match": "\\b(if|else|while|for|return|match|in)\\b"
+        },
+        {
+          "name": "keyword.declaration.peel",
+          "match": "\\b(let|mut|fn|struct|impl|async|await|import|export|from|extern|self)\\b"
+        },
+        {
+          "name": "constant.language.peel",
+          "match": "\\b(true|false|None|Ok|Err|Some)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.peel",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.peel",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "entity.name.type.peel",
+          "match": "\\b(int|float|string|bool|Option|Result)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.peel",
+          "match": "\\b\\d+(\\.\\d+)?\\b"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.peel"
+}

@@ -1,6 +1,6 @@
-use crate::lexer::Token;
-use crate::ast::{Literal, Expr, Stmt, Func, Param, Module, Op, UnaryOp, MatchArm, Pattern};
 use crate::ast::types::PeelType;
+use crate::ast::{Expr, Func, Literal, MatchArm, Module, Op, Param, Pattern, Stmt, UnaryOp};
+use crate::lexer::Token;
 use anyhow::Result;
 use logos::Logos;
 
@@ -28,28 +28,34 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     pub fn new(source: &'a str, file_path: &'a str) -> Self {
         let lex = Token::lexer(source);
-        let mut tokens: Vec<(Token, std::ops::Range<usize>)> = lex.spanned()
+        let mut tokens: Vec<(Token, std::ops::Range<usize>)> = lex
+            .spanned()
             .map(|(t, span)| (t.unwrap_or(Token::Ident("ERROR".to_string())), span))
             .collect();
         tokens.push((Token::EOF, source.len()..source.len()));
-        Self { tokens, pos: 0, source, file_path }
+        Self {
+            tokens,
+            pos: 0,
+            source,
+            file_path,
+        }
     }
 
     fn error(&self, message: &str) -> anyhow::Error {
         use colored::Colorize;
         let span = &self.tokens[self.pos.min(self.tokens.len().saturating_sub(1))].1;
-        
+
         let mut line_num = 1;
         let mut line_start = 0;
         let bytes = self.source.as_bytes();
-        
+
         for i in 0..span.start {
             if i < bytes.len() && bytes[i] == b'\n' {
                 line_num += 1;
                 line_start = i + 1;
             }
         }
-        
+
         let mut line_end = self.source.len();
         for i in line_start..self.source.len() {
             if bytes[i] == b'\n' {
@@ -57,19 +63,27 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        
+
         let line_content = if line_start <= line_end {
             &self.source[line_start..line_end]
         } else {
             ""
         };
-        
-        let col = if span.start >= line_start { span.start - line_start } else { 0 };
-        let end_col = if span.end >= line_start { span.end - line_start } else { 0 };
+
+        let col = if span.start >= line_start {
+            span.start - line_start
+        } else {
+            0
+        };
+        let end_col = if span.end >= line_start {
+            span.end - line_start
+        } else {
+            0
+        };
         let length = std::cmp::max(1, end_col.saturating_sub(col));
         let span_len = std::cmp::min(length, line_content.len().saturating_sub(col).max(1));
         let carets = "^".repeat(span_len);
-        
+
         let msg = format!(
             "{}: {}\n  {} {}:{}:{}\n   {}\n{:>3} {} {}\n    {} {}{} {}",
             "error".red().bold(),
@@ -95,7 +109,10 @@ impl<'a> Parser<'a> {
         while !self.is_at_end() {
             stmts.push(self.parse_stmt()?);
         }
-        Ok(Module { name: "main".to_string(), stmts })
+        Ok(Module {
+            name: "main".to_string(),
+            stmts,
+        })
     }
 
     fn parse_stmt(&mut self) -> Result<Stmt> {
@@ -131,7 +148,10 @@ impl<'a> Parser<'a> {
             // Support simple assignments
             if self.match_token(Token::Assign) {
                 let value = self.parse_expr()?;
-                Stmt::Assign { target: expr, value }
+                Stmt::Assign {
+                    target: expr,
+                    value,
+                }
             } else {
                 Stmt::Expr(expr)
             }
@@ -151,7 +171,12 @@ impl<'a> Parser<'a> {
 
         self.consume(Token::Assign, "Expected '=' in variable declaration")?;
         let init = self.parse_expr()?;
-        Ok(Stmt::Let { name, ty, init, is_mut })
+        Ok(Stmt::Let {
+            name,
+            ty,
+            init,
+            is_mut,
+        })
     }
 
     fn parse_func_stmt(&mut self, is_async: bool) -> Result<Stmt> {
@@ -162,7 +187,9 @@ impl<'a> Parser<'a> {
         if !self.check(Token::RParen) {
             loop {
                 let mut is_mut = false;
-                if self.match_token(Token::Mut) { is_mut = true; }
+                if self.match_token(Token::Mut) {
+                    is_mut = true;
+                }
 
                 let p_name = if self.match_token(Token::SelfToken) {
                     "self".to_string()
@@ -178,9 +205,15 @@ impl<'a> Parser<'a> {
                     return Err(self.error("Expected ':' after parameter name"));
                 };
 
-                params.push(Param { name: p_name, ty: p_ty, is_mut });
+                params.push(Param {
+                    name: p_name,
+                    ty: p_ty,
+                    is_mut,
+                });
 
-                if !self.match_token(Token::Comma) { break; }
+                if !self.match_token(Token::Comma) {
+                    break;
+                }
             }
         }
         self.consume(Token::RParen, "Expected ')' after parameters")?;
@@ -247,7 +280,11 @@ impl<'a> Parser<'a> {
         let token = self.advance();
         let lang = match token {
             Token::String(s) => s,
-            _ => return Err(self.error("Expected string literal for language (e.g. \"C\" or \"nasm\")")),
+            _ => {
+                return Err(
+                    self.error("Expected string literal for language (e.g. \"C\" or \"nasm\")")
+                );
+            }
         };
 
         let token = self.advance();
@@ -260,19 +297,27 @@ impl<'a> Parser<'a> {
         let mut declarations = Vec::new();
         while !self.check(Token::RBrace) && !self.is_at_end() {
             self.consume(Token::Fn, "Expected 'fn' in extern block")?;
-            
+
             let name = self.consume_ident("Expected function name")?;
             self.consume(Token::LParen, "Expected '(' after function name")?;
             let mut params = Vec::new();
             if !self.check(Token::RParen) {
                 loop {
                     let mut is_mut = false;
-                    if self.match_token(Token::Mut) { is_mut = true; }
+                    if self.match_token(Token::Mut) {
+                        is_mut = true;
+                    }
                     let p_name = self.consume_ident("Expected parameter name")?;
                     self.consume(Token::Colon, "Expected ':' after parameter name")?;
                     let p_ty = self.parse_type()?;
-                    params.push(Param { name: p_name, ty: p_ty, is_mut });
-                    if !self.match_token(Token::Comma) { break; }
+                    params.push(Param {
+                        name: p_name,
+                        ty: p_ty,
+                        is_mut,
+                    });
+                    if !self.match_token(Token::Comma) {
+                        break;
+                    }
                 }
             }
             self.consume(Token::RParen, "Expected ')' after parameters")?;
@@ -280,8 +325,11 @@ impl<'a> Parser<'a> {
             if self.match_token(Token::Arrow) {
                 ret_ty = self.parse_type()?;
             }
-            self.consume(Token::Semicolon, "Expected ';' after extern function declaration")?;
-            
+            self.consume(
+                Token::Semicolon,
+                "Expected ';' after extern function declaration",
+            )?;
+
             declarations.push(Func {
                 name,
                 params,
@@ -291,7 +339,11 @@ impl<'a> Parser<'a> {
             });
         }
         self.consume(Token::RBrace, "Expected '}' after extern block")?;
-        Ok(Stmt::ExternBlock { lang, body, declarations })
+        Ok(Stmt::ExternBlock {
+            lang,
+            body,
+            declarations,
+        })
     }
 
     fn parse_type(&mut self) -> Result<PeelType> {
@@ -336,10 +388,15 @@ impl<'a> Parser<'a> {
             let mut syms = Vec::new();
             while !self.check(Token::RBrace) && !self.is_at_end() {
                 syms.push(self.consume_ident("Expected symbol name")?);
-                if !self.match_token(Token::Comma) { break; }
+                if !self.match_token(Token::Comma) {
+                    break;
+                }
             }
             self.consume(Token::RBrace, "Expected '}' after import symbols")?;
-            self.consume(Token::Ident("from".to_string()), "Expected 'from' after import symbols")?;
+            self.consume(
+                Token::Ident("from".to_string()),
+                "Expected 'from' after import symbols",
+            )?;
             symbols = Some(syms);
         }
 
@@ -347,7 +404,12 @@ impl<'a> Parser<'a> {
         let path = match token {
             Token::String(s) => s,
             Token::Ident(s) => s, // Support legacy unquoted identifiers for now
-            _ => return Err(self.error(&format!("Expected string literal for module path, got {:?}", token))),
+            _ => {
+                return Err(self.error(&format!(
+                    "Expected string literal for module path, got {:?}",
+                    token
+                )));
+            }
         };
 
         Ok(Stmt::Import { path, symbols })
@@ -386,7 +448,11 @@ impl<'a> Parser<'a> {
                 else_branch = Some(self.parse_block()?);
             }
         }
-        Ok(Stmt::If { cond, then_branch, else_branch })
+        Ok(Stmt::If {
+            cond,
+            then_branch,
+            else_branch,
+        })
     }
 
     fn parse_expr(&mut self) -> Result<Expr> {
@@ -423,7 +489,9 @@ impl<'a> Parser<'a> {
                             self.consume(Token::Colon, "Expected ':' after field name")?;
                             let value = self.parse_expr()?;
                             fields.push((f_name, value));
-                            if !self.match_token(Token::Comma) { break; }
+                            if !self.match_token(Token::Comma) {
+                                break;
+                            }
                         }
                     }
                     self.consume(Token::RBrace, "Expected '}' after struct literal")?;
@@ -439,11 +507,17 @@ impl<'a> Parser<'a> {
             }
             Token::Minus => {
                 let right = self.parse_precedence(Precedence::Unary)?;
-                Ok(Expr::Unary { op: UnaryOp::Neg, right: Box::new(right) })
+                Ok(Expr::Unary {
+                    op: UnaryOp::Neg,
+                    right: Box::new(right),
+                })
             }
             Token::Not => {
                 let right = self.parse_precedence(Precedence::Unary)?;
-                Ok(Expr::Unary { op: UnaryOp::Not, right: Box::new(right) })
+                Ok(Expr::Unary {
+                    op: UnaryOp::Not,
+                    right: Box::new(right),
+                })
             }
             Token::Await => {
                 let right = self.parse_precedence(Precedence::Unary)?;
@@ -453,7 +527,11 @@ impl<'a> Parser<'a> {
             Token::LBracket => self.parse_array_literal(),
             Token::Match => self.parse_match_expr(),
             Token::Return => {
-                let value = if self.check(Token::RBrace) || self.check(Token::Semicolon) || self.check(Token::Comma) || self.is_at_end() {
+                let value = if self.check(Token::RBrace)
+                    || self.check(Token::Semicolon)
+                    || self.check(Token::Comma)
+                    || self.is_at_end()
+                {
                     None
                 } else {
                     Some(Box::new(self.parse_expr()?))
@@ -479,36 +557,64 @@ impl<'a> Parser<'a> {
 
     fn parse_infix(&mut self, left: Expr, token: Token) -> Result<Expr> {
         match token {
-            Token::Plus | Token::Minus | Token::Star | Token::Slash |
-            Token::Equal | Token::NotEqual | Token::Less | Token::Greater |
-            Token::LessEqual | Token::GreaterEqual | Token::And | Token::Or => {
+            Token::Plus
+            | Token::Minus
+            | Token::Star
+            | Token::Slash
+            | Token::Equal
+            | Token::NotEqual
+            | Token::Less
+            | Token::Greater
+            | Token::LessEqual
+            | Token::GreaterEqual
+            | Token::And
+            | Token::Or => {
                 let op = match token {
-                    Token::Plus => Op::Add, Token::Minus => Op::Sub,
-                    Token::Star => Op::Mul, Token::Slash => Op::Div,
-                    Token::Equal => Op::Eq, Token::NotEqual => Op::Ne,
-                    Token::Less => Op::Lt, Token::Greater => Op::Gt,
-                    Token::LessEqual => Op::Le, Token::GreaterEqual => Op::Ge,
-                    Token::And => Op::And, Token::Or => Op::Or,
+                    Token::Plus => Op::Add,
+                    Token::Minus => Op::Sub,
+                    Token::Star => Op::Mul,
+                    Token::Slash => Op::Div,
+                    Token::Equal => Op::Eq,
+                    Token::NotEqual => Op::Ne,
+                    Token::Less => Op::Lt,
+                    Token::Greater => Op::Gt,
+                    Token::LessEqual => Op::Le,
+                    Token::GreaterEqual => Op::Ge,
+                    Token::And => Op::And,
+                    Token::Or => Op::Or,
                     _ => unreachable!(),
                 };
                 let precedence = self.get_precedence(&token);
                 let right = self.parse_precedence(precedence)?;
-                Ok(Expr::Binary { left: Box::new(left), op, right: Box::new(right) })
+                Ok(Expr::Binary {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
             }
             Token::LParen => self.parse_call_expr(left),
             Token::Dot => {
                 let field = self.consume_ident("Expected field name after '.'")?;
-                Ok(Expr::FieldAccess { target: Box::new(left), field })
+                Ok(Expr::FieldAccess {
+                    target: Box::new(left),
+                    field,
+                })
             }
             Token::LBracket => {
                 let index = self.parse_expr()?;
                 self.consume(Token::RBracket, "Expected ']' after index")?;
-                Ok(Expr::Index { target: Box::new(left), index: Box::new(index) })
+                Ok(Expr::Index {
+                    target: Box::new(left),
+                    index: Box::new(index),
+                })
             }
             Token::Question => Ok(Expr::Try(Box::new(left))),
             Token::Colon => {
                 let ty = self.parse_type()?;
-                Ok(Expr::TypeCast { expr: Box::new(left), ty })
+                Ok(Expr::TypeCast {
+                    expr: Box::new(left),
+                    ty,
+                })
             }
             _ => Ok(left),
         }
@@ -519,7 +625,9 @@ impl<'a> Parser<'a> {
             Token::Or => Precedence::Or,
             Token::And => Precedence::And,
             Token::Equal | Token::NotEqual => Precedence::Equality,
-            Token::Less | Token::Greater | Token::LessEqual | Token::GreaterEqual => Precedence::Comparison,
+            Token::Less | Token::Greater | Token::LessEqual | Token::GreaterEqual => {
+                Precedence::Comparison
+            }
             Token::Plus | Token::Minus => Precedence::Term,
             Token::Star | Token::Slash => Precedence::Factor,
             Token::Colon => Precedence::Cast,
@@ -533,11 +641,16 @@ impl<'a> Parser<'a> {
         if !self.check(Token::RParen) {
             loop {
                 args.push(self.parse_expr()?);
-                if !self.match_token(Token::Comma) { break; }
+                if !self.match_token(Token::Comma) {
+                    break;
+                }
             }
         }
         self.consume(Token::RParen, "Expected ')' after arguments")?;
-        Ok(Expr::Call { callee: Box::new(callee), args })
+        Ok(Expr::Call {
+            callee: Box::new(callee),
+            args,
+        })
     }
 
     fn parse_object_literal(&mut self) -> Result<Expr> {
@@ -548,7 +661,9 @@ impl<'a> Parser<'a> {
                 self.consume(Token::Colon, "Expected ':' after field name")?;
                 let value = self.parse_expr()?;
                 fields.push((name, value));
-                if !self.match_token(Token::Comma) { break; }
+                if !self.match_token(Token::Comma) {
+                    break;
+                }
             }
         }
         self.consume(Token::RBrace, "Expected '}' after object literal")?;
@@ -560,7 +675,9 @@ impl<'a> Parser<'a> {
         if !self.check(Token::RBracket) {
             loop {
                 elements.push(self.parse_expr()?);
-                if !self.match_token(Token::Comma) { break; }
+                if !self.match_token(Token::Comma) {
+                    break;
+                }
             }
         }
         self.consume(Token::RBracket, "Expected ']' after array literal")?;
@@ -579,7 +696,10 @@ impl<'a> Parser<'a> {
             self.match_token(Token::Comma); // Optional comma
         }
         self.consume(Token::RBrace, "Expected '}' after match expression")?;
-        Ok(Expr::Match { expr: Box::new(expr), arms })
+        Ok(Expr::Match {
+            expr: Box::new(expr),
+            arms,
+        })
     }
 
     fn parse_pattern(&mut self) -> Result<Pattern> {
@@ -615,7 +735,9 @@ impl<'a> Parser<'a> {
         Ok(Pattern::Enum { name, inner })
     }
     fn match_ident(&mut self) -> Option<String> {
-        if self.is_at_end() { return None; }
+        if self.is_at_end() {
+            return None;
+        }
         if let Token::Ident(name) = self.peek() {
             self.advance();
             Some(name)
@@ -642,17 +764,23 @@ impl<'a> Parser<'a> {
     }
 
     fn check(&self, token: Token) -> bool {
-        if self.is_at_end() { return false; }
+        if self.is_at_end() {
+            return false;
+        }
         self.peek() == token
     }
 
     fn peek(&self) -> Token {
-        if self.is_at_end() { return Token::EOF; }
+        if self.is_at_end() {
+            return Token::EOF;
+        }
         self.tokens[self.pos].0.clone()
     }
 
     fn advance(&mut self) -> Token {
-        if !self.is_at_end() { self.pos += 1; }
+        if !self.is_at_end() {
+            self.pos += 1;
+        }
         self.previous()
     }
 
@@ -675,7 +803,9 @@ impl<'a> Parser<'a> {
     fn is_struct_literal_lookahead(&self) -> bool {
         // Check if next two tokens are Ident and Colon
         // self.pos is at Ident. Peek is LBrace at self.pos
-        if self.pos + 2 >= self.tokens.len() { return false; }
+        if self.pos + 2 >= self.tokens.len() {
+            return false;
+        }
         match (&self.tokens[self.pos + 1].0, &self.tokens[self.pos + 2].0) {
             (Token::Ident(_), Token::Colon) => true,
             _ => false,

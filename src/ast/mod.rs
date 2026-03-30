@@ -62,14 +62,24 @@ pub enum Expr {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Op {
-    Add, Sub, Mul, Div,
-    Eq, Ne, Lt, Gt, Le, Ge,
-    And, Or,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Eq,
+    Ne,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+    And,
+    Or,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOp {
-    Neg, Not,
+    Neg,
+    Not,
 }
 
 #[derive(Debug, Clone, PartialEq)]

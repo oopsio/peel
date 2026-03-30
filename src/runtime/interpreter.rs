@@ -1,9 +1,9 @@
-use crate::ast::{Literal, Expr, Stmt, Op, Pattern};
-use crate::runtime::value::{PeelValue, PeelFunc};
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use crate::ast::{Expr, Literal, Op, Pattern, Stmt};
+use crate::runtime::value::{PeelFunc, PeelValue};
 use anyhow::{Result, anyhow};
 use async_recursion::async_recursion;
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 pub type RuntimeResult<T> = Result<T>;
 
@@ -15,11 +15,19 @@ pub struct Environment {
 
 impl Environment {
     pub fn new() -> Self {
-        Self { parent: None, values: HashMap::new(), exports: std::collections::HashSet::new() }
+        Self {
+            parent: None,
+            values: HashMap::new(),
+            exports: std::collections::HashSet::new(),
+        }
     }
 
     pub fn child(parent: Arc<RwLock<Environment>>) -> Self {
-        Self { parent: Some(parent), values: HashMap::new(), exports: std::collections::HashSet::new() }
+        Self {
+            parent: Some(parent),
+            values: HashMap::new(),
+            exports: std::collections::HashSet::new(),
+        }
     }
 
     pub fn get(&self, name: &str) -> Option<PeelValue> {
@@ -91,21 +99,32 @@ impl Interpreter {
                     body: func.body.clone(),
                     _is_async: func.is_async,
                 };
-                self.env.write().unwrap().define(func.name.clone(), PeelValue::Function(Arc::new(peel_func)));
+                self.env
+                    .write()
+                    .unwrap()
+                    .define(func.name.clone(), PeelValue::Function(Arc::new(peel_func)));
                 Ok(PeelValue::Void)
             }
             Stmt::Expr(expr) => self.eval_expr(expr).await,
-            Stmt::If { cond, then_branch, else_branch } => {
+            Stmt::If {
+                cond,
+                then_branch,
+                else_branch,
+            } => {
                 let cond_val = self.eval_expr(cond).await?;
                 if let PeelValue::Bool(true) = cond_val {
                     for s in then_branch {
                         let res = self.eval_stmt(s).await?;
-                        if let PeelValue::Return(_) = res { return Ok(res); }
+                        if let PeelValue::Return(_) = res {
+                            return Ok(res);
+                        }
                     }
                 } else if let Some(branch) = else_branch {
                     for s in branch {
                         let res = self.eval_stmt(s).await?;
-                        if let PeelValue::Return(_) = res { return Ok(res); }
+                        if let PeelValue::Return(_) = res {
+                            return Ok(res);
+                        }
                     }
                 }
                 Ok(PeelValue::Void)
@@ -120,7 +139,10 @@ impl Interpreter {
             }
             Stmt::Struct { name, fields } => {
                 let field_names = fields.iter().map(|(n, _)| n.clone()).collect();
-                self.structs.write().unwrap().insert(name.clone(), field_names);
+                self.structs
+                    .write()
+                    .unwrap()
+                    .insert(name.clone(), field_names);
                 Ok(PeelValue::Void)
             }
             Stmt::Impl { target, methods } => {
@@ -134,7 +156,12 @@ impl Interpreter {
                     };
                     method_map.insert(m.name.clone(), PeelValue::Function(Arc::new(peel_func)));
                 }
-                self.methods.write().unwrap().entry(target.clone()).or_insert_with(HashMap::new).extend(method_map);
+                self.methods
+                    .write()
+                    .unwrap()
+                    .entry(target.clone())
+                    .or_insert_with(HashMap::new)
+                    .extend(method_map);
                 Ok(PeelValue::Void)
             }
             Stmt::Export(inner) => {
@@ -158,17 +185,29 @@ impl Interpreter {
                 }
                 Ok(res)
             }
-            Stmt::ExternBlock { lang, body, declarations } => {
+            Stmt::ExternBlock {
+                lang,
+                body,
+                declarations,
+            } => {
                 let uuid_str = uuid::Uuid::new_v4().to_string().replace("-", "");
                 let temp_dir = std::env::temp_dir();
                 let dll_path = temp_dir.join(format!("peel_ffi_{}.dll", uuid_str));
-                
+
                 if lang == "C" {
                     let c_path = temp_dir.join(format!("tmp_ffi_{}.c", uuid_str));
-                    std::fs::write(&c_path, body).map_err(|e| anyhow!("Failed to write C FFI code: {}", e))?;
-                    
+                    std::fs::write(&c_path, body)
+                        .map_err(|e| anyhow!("Failed to write C FFI code: {}", e))?;
+
                     let status = std::process::Command::new("gcc")
-                        .args(&[std::ffi::OsStr::new("-O3"), std::ffi::OsStr::new("-shared"), std::ffi::OsStr::new("-fPIC"), std::ffi::OsStr::new("-o"), dll_path.as_os_str(), c_path.as_os_str()])
+                        .args(&[
+                            std::ffi::OsStr::new("-O3"),
+                            std::ffi::OsStr::new("-shared"),
+                            std::ffi::OsStr::new("-fPIC"),
+                            std::ffi::OsStr::new("-o"),
+                            dll_path.as_os_str(),
+                            c_path.as_os_str(),
+                        ])
                         .status()
                         .map_err(|e| anyhow!("Failed to execute gcc. Is it installed? {:?}", e))?;
                     if !status.success() {
@@ -177,51 +216,69 @@ impl Interpreter {
                 } else if lang == "nasm" {
                     let asm_path = temp_dir.join(format!("tmp_ffi_{}.asm", uuid_str));
                     let obj_path = temp_dir.join(format!("tmp_ffi_{}.obj", uuid_str));
-                    std::fs::write(&asm_path, body).map_err(|e| anyhow!("Failed to write NASM FFI code: {}", e))?;
-                    
+                    std::fs::write(&asm_path, body)
+                        .map_err(|e| anyhow!("Failed to write NASM FFI code: {}", e))?;
+
                     let status = std::process::Command::new("nasm")
-                        .args(&[std::ffi::OsStr::new("-f"), std::ffi::OsStr::new("win64"), asm_path.as_os_str(), std::ffi::OsStr::new("-o"), obj_path.as_os_str()])
+                        .args(&[
+                            std::ffi::OsStr::new("-f"),
+                            std::ffi::OsStr::new("win64"),
+                            asm_path.as_os_str(),
+                            std::ffi::OsStr::new("-o"),
+                            obj_path.as_os_str(),
+                        ])
                         .status()
                         .map_err(|e| anyhow!("Failed to execute nasm. Is it installed? {:?}", e))?;
                     if !status.success() {
                         return Err(anyhow!("nasm failed to assemble FFI code"));
                     }
-                    
+
                     let link_status = std::process::Command::new("gcc")
-                        .args(&[std::ffi::OsStr::new("-shared"), obj_path.as_os_str(), std::ffi::OsStr::new("-o"), dll_path.as_os_str()])
+                        .args(&[
+                            std::ffi::OsStr::new("-shared"),
+                            obj_path.as_os_str(),
+                            std::ffi::OsStr::new("-o"),
+                            dll_path.as_os_str(),
+                        ])
                         .status()
-                        .map_err(|e| anyhow!("Failed to execute gcc for linking nasm object. {:?}", e))?;
+                        .map_err(|e| {
+                            anyhow!("Failed to execute gcc for linking nasm object. {:?}", e)
+                        })?;
                     if !link_status.success() {
                         return Err(anyhow!("gcc failed to link NASM object code"));
                     }
                 } else {
                     return Err(anyhow!("Unsupported FFI language: {}", lang));
                 }
-                
+
                 let lib = unsafe {
-                    Arc::new(libloading::Library::new(&dll_path).map_err(|e| anyhow!("Failed to load dynamic library: {}", e))?)
+                    Arc::new(
+                        libloading::Library::new(&dll_path)
+                            .map_err(|e| anyhow!("Failed to load dynamic library: {}", e))?,
+                    )
                 };
                 self.libraries.write().unwrap().push(lib.clone());
-                
+
                 for decl in declarations {
                     let fn_name = decl.name.clone();
                     let num_args = decl.params.len();
                     let ret_ty = decl.ret_ty.clone();
-                    
+
                     let lib_clone = lib.clone();
-                    
+
                     let handler = Arc::new(move |args: Vec<PeelValue>| {
                         let lib_c = lib_clone.clone();
                         let f_name = fn_name.clone();
                         let n_args = num_args;
                         let r_ty = ret_ty.clone();
-                        
+
                         Box::pin(async move {
                             unsafe {
-                                let func_ptr: libloading::Symbol<*const ()> = lib_c.get(f_name.as_bytes())
+                                let func_ptr: libloading::Symbol<*const ()> = lib_c
+                                    .get(f_name.as_bytes())
                                     .map_err(|e| anyhow!("DLSym failed for {}: {}", f_name, e))?;
                                 let ptr = *func_ptr;
-                                
+
                                 let mut int_args: [i64; 6] = [0; 6];
                                 for (i, arg) in args.iter().enumerate().take(6) {
                                     int_args[i] = match arg {
@@ -232,41 +289,89 @@ impl Interpreter {
                                         _ => 0,
                                     };
                                 }
-                                
+
                                 if r_ty == crate::ast::types::PeelType::Float {
                                     let res: f64 = match n_args {
-                                        0 => { let f: unsafe extern "C" fn() -> f64 = std::mem::transmute(ptr); f() }
-                                        1 => { let f: unsafe extern "C" fn(i64) -> f64 = std::mem::transmute(ptr); f(int_args[0]) }
-                                        2 => { let f: unsafe extern "C" fn(i64, i64) -> f64 = std::mem::transmute(ptr); f(int_args[0], int_args[1]) }
-                                        3 => { let f: unsafe extern "C" fn(i64, i64, i64) -> f64 = std::mem::transmute(ptr); f(int_args[0], int_args[1], int_args[2]) }
-                                        4 => { let f: unsafe extern "C" fn(i64, i64, i64, i64) -> f64 = std::mem::transmute(ptr); f(int_args[0], int_args[1], int_args[2], int_args[3]) }
-                                        _ => return Err(anyhow!("FFI functions currently support up to 4 arguments")),
+                                        0 => {
+                                            let f: unsafe extern "C" fn() -> f64 =
+                                                std::mem::transmute(ptr);
+                                            f()
+                                        }
+                                        1 => {
+                                            let f: unsafe extern "C" fn(i64) -> f64 =
+                                                std::mem::transmute(ptr);
+                                            f(int_args[0])
+                                        }
+                                        2 => {
+                                            let f: unsafe extern "C" fn(i64, i64) -> f64 =
+                                                std::mem::transmute(ptr);
+                                            f(int_args[0], int_args[1])
+                                        }
+                                        3 => {
+                                            let f: unsafe extern "C" fn(i64, i64, i64) -> f64 =
+                                                std::mem::transmute(ptr);
+                                            f(int_args[0], int_args[1], int_args[2])
+                                        }
+                                        4 => {
+                                            let f: unsafe extern "C" fn(i64, i64, i64, i64) -> f64 =
+                                                std::mem::transmute(ptr);
+                                            f(int_args[0], int_args[1], int_args[2], int_args[3])
+                                        }
+                                        _ => {
+                                            return Err(anyhow!(
+                                                "FFI functions currently support up to 4 arguments"
+                                            ));
+                                        }
                                     };
                                     Ok(PeelValue::Float(res))
                                 } else {
                                     let res: i64 = match n_args {
-                                        0 => { let f: unsafe extern "C" fn() -> i64 = std::mem::transmute(ptr); f() }
-                                        1 => { let f: unsafe extern "C" fn(i64) -> i64 = std::mem::transmute(ptr); f(int_args[0]) }
-                                        2 => { let f: unsafe extern "C" fn(i64, i64) -> i64 = std::mem::transmute(ptr); f(int_args[0], int_args[1]) }
-                                        3 => { let f: unsafe extern "C" fn(i64, i64, i64) -> i64 = std::mem::transmute(ptr); f(int_args[0], int_args[1], int_args[2]) }
-                                        4 => { let f: unsafe extern "C" fn(i64, i64, i64, i64) -> i64 = std::mem::transmute(ptr); f(int_args[0], int_args[1], int_args[2], int_args[3]) }
-                                        _ => return Err(anyhow!("FFI functions currently support up to 4 arguments")),
+                                        0 => {
+                                            let f: unsafe extern "C" fn() -> i64 =
+                                                std::mem::transmute(ptr);
+                                            f()
+                                        }
+                                        1 => {
+                                            let f: unsafe extern "C" fn(i64) -> i64 =
+                                                std::mem::transmute(ptr);
+                                            f(int_args[0])
+                                        }
+                                        2 => {
+                                            let f: unsafe extern "C" fn(i64, i64) -> i64 =
+                                                std::mem::transmute(ptr);
+                                            f(int_args[0], int_args[1])
+                                        }
+                                        3 => {
+                                            let f: unsafe extern "C" fn(i64, i64, i64) -> i64 =
+                                                std::mem::transmute(ptr);
+                                            f(int_args[0], int_args[1], int_args[2])
+                                        }
+                                        4 => {
+                                            let f: unsafe extern "C" fn(i64, i64, i64, i64) -> i64 =
+                                                std::mem::transmute(ptr);
+                                            f(int_args[0], int_args[1], int_args[2], int_args[3])
+                                        }
+                                        _ => {
+                                            return Err(anyhow!(
+                                                "FFI functions currently support up to 4 arguments"
+                                            ));
+                                        }
                                     };
                                     Ok(PeelValue::Int(res))
                                 }
                             }
                         }) as futures::future::BoxFuture<'static, _>
                     });
-                    
+
                     self.env.write().unwrap().define(
                         decl.name.clone(),
                         PeelValue::NativeFunction(Arc::new(crate::runtime::value::NativeFunc {
                             name: decl.name.clone(),
                             handler,
-                        }))
+                        })),
                     );
                 }
-                
+
                 Ok(PeelValue::Void)
             }
             Stmt::Import { path, symbols } => {
@@ -283,7 +388,7 @@ impl Interpreter {
                 } else {
                     let source = std::fs::read_to_string(&resolved_path)
                         .map_err(|e| anyhow!("Failed to read module '{}': {}", path_str, e))?;
-                    
+
                     let mut parser = crate::parser::Parser::new(&source, &path_str);
                     let module = parser.parse_module()?;
 
@@ -295,7 +400,10 @@ impl Interpreter {
                         structs: self.structs.clone(),
                         methods: self.methods.clone(),
                         module_cache: self.module_cache.clone(),
-                        current_path: resolved_path.parent().unwrap_or(std::path::Path::new(".")).to_path_buf(),
+                        current_path: resolved_path
+                            .parent()
+                            .unwrap_or(std::path::Path::new("."))
+                            .to_path_buf(),
                         libraries: self.libraries.clone(),
                     };
 
@@ -303,13 +411,16 @@ impl Interpreter {
                         sub_interpreter.eval_stmt(stmt).await?;
                     }
 
-                    self.module_cache.write().unwrap().insert(path_str, new_env.clone());
+                    self.module_cache
+                        .write()
+                        .unwrap()
+                        .insert(path_str, new_env.clone());
                     new_env
                 };
 
                 let mut current_env = self.env.write().unwrap();
                 let module_env_lock = target_env.read().unwrap();
-                
+
                 if let Some(syms) = symbols {
                     for sym in syms {
                         if module_env_lock.exports.contains(sym) {
@@ -317,7 +428,11 @@ impl Interpreter {
                                 current_env.define(sym.clone(), val.clone());
                             }
                         } else {
-                            return Err(anyhow!("Module '{}' does not export symbol '{}'", path, sym));
+                            return Err(anyhow!(
+                                "Module '{}' does not export symbol '{}'",
+                                path,
+                                sym
+                            ));
                         }
                     }
                 } else {
@@ -343,7 +458,12 @@ impl Interpreter {
                 Literal::Bool(b) => Ok(PeelValue::Bool(*b)),
                 Literal::None => Ok(PeelValue::Void),
             },
-            Expr::Ident(name) => self.env.read().unwrap().get(name).ok_or(anyhow!("Undefined variable '{}'", name)),
+            Expr::Ident(name) => self
+                .env
+                .read()
+                .unwrap()
+                .get(name)
+                .ok_or(anyhow!("Undefined variable '{}'", name)),
             Expr::Binary { left, op, right } => {
                 let l = self.eval_expr(left).await?;
                 let r = self.eval_expr(right).await?;
@@ -377,7 +497,10 @@ impl Interpreter {
                 if let Expr::FieldAccess { target, field } = callee.as_ref() {
                     let instance = self.eval_expr(target).await?;
                     let struct_name = match &instance {
-                        PeelValue::Object { struct_name: Some(s_name), .. } => Some(s_name.clone()),
+                        PeelValue::Object {
+                            struct_name: Some(s_name),
+                            ..
+                        } => Some(s_name.clone()),
                         PeelValue::String(_) => Some("String".to_string()),
                         PeelValue::Int(_) | PeelValue::Float(_) => Some("Number".to_string()),
                         PeelValue::Bool(_) => Some("Boolean".to_string()),
@@ -402,45 +525,18 @@ impl Interpreter {
                     for arg in args {
                         arg_vals.push(self.eval_expr(arg).await?);
                     }
-                    
+
                     match method {
                         PeelValue::Function(f) => {
-                            let child_env = Arc::new(RwLock::new(Environment::child(self.env.clone())));
+                            let child_env =
+                                Arc::new(RwLock::new(Environment::child(self.env.clone())));
                             for (i, param_name) in f.params.iter().enumerate() {
-                                child_env.write().unwrap().define(param_name.clone(), arg_vals[i].clone());
+                                child_env
+                                    .write()
+                                    .unwrap()
+                                    .define(param_name.clone(), arg_vals[i].clone());
                             }
-                            let mut sub_interpreter = Interpreter { 
-                                env: child_env, 
-                                structs: self.structs.clone(), 
-                                methods: self.methods.clone(),
-                                module_cache: self.module_cache.clone(),
-                                current_path: self.current_path.clone(),
-                                libraries: self.libraries.clone(),
-                            };
-                            let mut last = PeelValue::Void;
-                            for stmt in &f.body {
-                                last = sub_interpreter.eval_stmt(stmt).await?;
-                                if let PeelValue::Return(v) = last { return Ok(*v); }
-                            }
-                            Ok(last)
-                        }
-                        PeelValue::NativeFunction(f) => {
-                            (f.handler)(arg_vals).await
-                        }
-                        _ => Err(anyhow!("Method is not a function")),
-                    }
-                } else {
-                    let func_val = self.eval_expr(callee).await?;
-                    let mut arg_vals = Vec::new();
-                    for arg in args { arg_vals.push(self.eval_expr(arg).await?); }
-
-                    match func_val {
-                        PeelValue::Function(f) => {
-                            let child_env = Arc::new(RwLock::new(Environment::child(self.env.clone())));
-                            for (i, param) in f.params.iter().enumerate() {
-                                child_env.write().unwrap().define(param.clone(), arg_vals[i].clone());
-                            }
-                            let mut sub_interpreter = Interpreter { 
+                            let mut sub_interpreter = Interpreter {
                                 env: child_env,
                                 structs: self.structs.clone(),
                                 methods: self.methods.clone(),
@@ -451,13 +547,50 @@ impl Interpreter {
                             let mut last = PeelValue::Void;
                             for stmt in &f.body {
                                 last = sub_interpreter.eval_stmt(stmt).await?;
-                                if let PeelValue::Return(v) = last { return Ok(*v); }
+                                if let PeelValue::Return(v) = last {
+                                    return Ok(*v);
+                                }
                             }
                             Ok(last)
                         }
-                        PeelValue::NativeFunction(f) => {
-                            (f.handler)(arg_vals).await
+                        PeelValue::NativeFunction(f) => (f.handler)(arg_vals).await,
+                        _ => Err(anyhow!("Method is not a function")),
+                    }
+                } else {
+                    let func_val = self.eval_expr(callee).await?;
+                    let mut arg_vals = Vec::new();
+                    for arg in args {
+                        arg_vals.push(self.eval_expr(arg).await?);
+                    }
+
+                    match func_val {
+                        PeelValue::Function(f) => {
+                            let child_env =
+                                Arc::new(RwLock::new(Environment::child(self.env.clone())));
+                            for (i, param) in f.params.iter().enumerate() {
+                                child_env
+                                    .write()
+                                    .unwrap()
+                                    .define(param.clone(), arg_vals[i].clone());
+                            }
+                            let mut sub_interpreter = Interpreter {
+                                env: child_env,
+                                structs: self.structs.clone(),
+                                methods: self.methods.clone(),
+                                module_cache: self.module_cache.clone(),
+                                current_path: self.current_path.clone(),
+                                libraries: self.libraries.clone(),
+                            };
+                            let mut last = PeelValue::Void;
+                            for stmt in &f.body {
+                                last = sub_interpreter.eval_stmt(stmt).await?;
+                                if let PeelValue::Return(v) = last {
+                                    return Ok(*v);
+                                }
+                            }
+                            Ok(last)
                         }
+                        PeelValue::NativeFunction(f) => (f.handler)(arg_vals).await,
                         _ => Err(anyhow!("Cannot call non-function")),
                     }
                 }
@@ -487,7 +620,10 @@ impl Interpreter {
                 let val = self.eval_expr(target).await?;
                 if let PeelValue::Object { fields, .. } = val {
                     let lock = fields.lock().unwrap();
-                    Ok(lock.get(field).cloned().ok_or(anyhow!("Field '{}' not found", field))?)
+                    Ok(lock
+                        .get(field)
+                        .cloned()
+                        .ok_or(anyhow!("Field '{}' not found", field))?)
                 } else {
                     Err(anyhow!("Cannot access field '{}' on non-object", field))
                 }
@@ -511,7 +647,7 @@ impl Interpreter {
                         }
                         Ok(lock[idx as usize].clone())
                     }
-                    _ => Err(anyhow!("Invalid index operation: {:?}[{:?}]", t_val, i_val))
+                    _ => Err(anyhow!("Invalid index operation: {:?}[{:?}]", t_val, i_val)),
                 }
             }
             Expr::Match { expr, arms } => {
@@ -538,9 +674,15 @@ impl Interpreter {
                     None
                 };
                 match name.as_str() {
-                    "Ok" => Ok(PeelValue::Result(Ok(val.unwrap_or(Box::new(PeelValue::Void))))),
-                    "Err" => Ok(PeelValue::Result(Err(val.unwrap_or(Box::new(PeelValue::Void))))),
-                    "Some" => Ok(PeelValue::Option(Some(val.unwrap_or(Box::new(PeelValue::Void))))),
+                    "Ok" => Ok(PeelValue::Result(Ok(
+                        val.unwrap_or(Box::new(PeelValue::Void))
+                    ))),
+                    "Err" => Ok(PeelValue::Result(Err(
+                        val.unwrap_or(Box::new(PeelValue::Void))
+                    ))),
+                    "Some" => Ok(PeelValue::Option(Some(
+                        val.unwrap_or(Box::new(PeelValue::Void)),
+                    ))),
                     _ => Ok(PeelValue::Enum(name.clone(), val)),
                 }
             }
@@ -559,17 +701,23 @@ impl Interpreter {
                 self.env.write().unwrap().define(name.clone(), v.clone());
                 true
             }
-            (PeelValue::Result(res), Pattern::Enum { name, inner }) => {
-                match (res, name.as_str()) {
-                    (Ok(v), "Ok") => {
-                        if let Some(p) = inner { self.match_pattern(v, p) } else { true }
+            (PeelValue::Result(res), Pattern::Enum { name, inner }) => match (res, name.as_str()) {
+                (Ok(v), "Ok") => {
+                    if let Some(p) = inner {
+                        self.match_pattern(v, p)
+                    } else {
+                        true
                     }
-                    (Err(v), "Err") => {
-                        if let Some(p) = inner { self.match_pattern(v, p) } else { true }
-                    }
-                    _ => false,
                 }
-            }
+                (Err(v), "Err") => {
+                    if let Some(p) = inner {
+                        self.match_pattern(v, p)
+                    } else {
+                        true
+                    }
+                }
+                _ => false,
+            },
             _ => false,
         }
     }
@@ -590,14 +738,14 @@ impl Interpreter {
             base_mod_path.push(".peel");
             base_mod_path.push("modules");
             base_mod_path.push(path);
-            
+
             // Try [path].pel
             let mut file_path = base_mod_path.clone();
             file_path.set_extension("pel");
             if file_path.exists() {
                 return Ok(file_path.canonicalize()?);
             }
-            
+
             // Try [path]/index.pel
             let mut index_path = base_mod_path.clone();
             index_path.push("index.pel");

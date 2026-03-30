@@ -1,7 +1,7 @@
 use crate::ast::Stmt;
+use futures::future::BoxFuture;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use futures::future::BoxFuture;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -32,8 +32,12 @@ impl PartialEq for PeelValue {
             (PeelValue::Float(a), PeelValue::Float(b)) => a == b,
             (PeelValue::String(a), PeelValue::String(b)) => a == b,
             (PeelValue::Bool(a), PeelValue::Bool(b)) => a == b,
-            (PeelValue::List(a), PeelValue::List(b)) => Arc::ptr_eq(a, b) || *a.lock().unwrap() == *b.lock().unwrap(),
-            (PeelValue::Map(a), PeelValue::Map(b)) => Arc::ptr_eq(a, b) || *a.lock().unwrap() == *b.lock().unwrap(),
+            (PeelValue::List(a), PeelValue::List(b)) => {
+                Arc::ptr_eq(a, b) || *a.lock().unwrap() == *b.lock().unwrap()
+            }
+            (PeelValue::Map(a), PeelValue::Map(b)) => {
+                Arc::ptr_eq(a, b) || *a.lock().unwrap() == *b.lock().unwrap()
+            }
             (PeelValue::Void, PeelValue::Void) => true,
             _ => false,
         }
@@ -50,11 +54,19 @@ pub struct PeelFunc {
 
 impl std::fmt::Debug for PeelFunc {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PeelFunc").field("name", &self.name).finish()
+        f.debug_struct("PeelFunc")
+            .field("name", &self.name)
+            .finish()
     }
 }
 
-pub type NativeFn = Arc<dyn Fn(Vec<PeelValue>) -> BoxFuture<'static, crate::runtime::interpreter::RuntimeResult<PeelValue>> + Send + Sync>;
+pub type NativeFn = Arc<
+    dyn Fn(
+            Vec<PeelValue>,
+        ) -> BoxFuture<'static, crate::runtime::interpreter::RuntimeResult<PeelValue>>
+        + Send
+        + Sync,
+>;
 
 pub struct NativeFunc {
     pub name: String,
@@ -63,6 +75,8 @@ pub struct NativeFunc {
 
 impl std::fmt::Debug for NativeFunc {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("NativeFunc").field("name", &self.name).finish()
+        f.debug_struct("NativeFunc")
+            .field("name", &self.name)
+            .finish()
     }
 }

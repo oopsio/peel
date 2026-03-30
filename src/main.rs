@@ -1,14 +1,15 @@
-mod lexer;
 mod ast;
-mod parser;
 mod checker;
+mod lexer;
+mod lsp;
+mod parser;
 mod runtime;
 mod stdlib;
 
-use clap::{Parser as ClapParser, Subcommand};
 use crate::parser::Parser;
-use std::fs;
 use anyhow::Result;
+use clap::{Parser as ClapParser, Subcommand};
+use std::fs;
 
 #[derive(ClapParser)]
 #[command(name = "peel")]
@@ -30,6 +31,8 @@ enum Commands {
         /// Path to the file
         path: String,
     },
+    /// Start the Language Server Protocol (LSP) server
+    Lsp,
 }
 
 #[tokio::main]
@@ -62,7 +65,10 @@ async fn run_cli() -> Result<()> {
 
             // 2. Initialize Runtime & StdLib
             let mut interpreter = crate::runtime::Interpreter::new();
-            interpreter.current_path = std::path::Path::new(&path).parent().unwrap_or(std::path::Path::new(".")).to_path_buf();
+            interpreter.current_path = std::path::Path::new(&path)
+                .parent()
+                .unwrap_or(std::path::Path::new("."))
+                .to_path_buf();
             crate::stdlib::register_stdlib(interpreter.env.clone(), interpreter.methods.clone());
 
             // 3. Execute
@@ -75,6 +81,9 @@ async fn run_cli() -> Result<()> {
             let mut parser = Parser::new(&source, &path);
             let module = parser.parse_module().map_err(|e| anyhow::anyhow!(e))?;
             println!("{:#?}", module);
+        }
+        Commands::Lsp => {
+            crate::lsp::start_lsp().await;
         }
     }
 

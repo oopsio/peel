@@ -37,9 +37,21 @@ impl PeelType {
             (PeelType::Map(a_k, a_v), PeelType::Map(b_k, b_v)) => {
                 a_k.matches(b_k) && a_v.matches(b_v)
             }
-            (PeelType::Func { params: a_p, ret: a_r, is_async: a_a },
-             PeelType::Func { params: b_p, ret: b_r, is_async: b_a }) => {
-                if a_p.len() != b_p.len() || a_a != b_a { return false; }
+            (
+                PeelType::Func {
+                    params: a_p,
+                    ret: a_r,
+                    is_async: a_a,
+                },
+                PeelType::Func {
+                    params: b_p,
+                    ret: b_r,
+                    is_async: b_a,
+                },
+            ) => {
+                if a_p.len() != b_p.len() || a_a != b_a {
+                    return false;
+                }
                 a_p.iter().enumerate().all(|(i, p)| p.matches(&b_p[i])) && a_r.matches(b_r)
             }
             _ => false,
