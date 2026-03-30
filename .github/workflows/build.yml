@@ -1,0 +1,100 @@
+name: Multi-Platform Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux Targets
+          - os: linux
+            arch: x64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: linux
+            arch: x86
+            runner: ubuntu-latest
+            target: i686-unknown-linux-gnu
+          - os: linux
+            arch: arm64
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+
+          # macOS (Darwin) Targets
+          - os: darwin
+            arch: x64
+            runner: macos-13 # Intel-based runner
+            target: x86_64-apple-darwin
+          - os: darwin
+            arch: arm64
+            runner: macos-latest # Apple Silicon runner
+            target: aarch64-apple-darwin
+
+          # Windows Targets
+          - os: win32
+            arch: x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: win32
+            arch: ia32
+            runner: windows-latest
+            target: i686-pc-windows-msvc
+
+          # FreeBSD (Note: Requires cross-compilation on Linux)
+          - os: freebsd
+            arch: x64
+            runner: ubuntu-latest
+            target: x86_64-unknown-freebsd
+          - os: freebsd
+            arch: arm64
+            runner: ubuntu-latest
+            target: aarch64-unknown-freebsd
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Cross-Compilation Tools (Linux/FreeBSD/i686)
+        if: runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib
+
+      - name: Build Release
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare Artifact
+        shell: bash
+        run: |
+          # Define binary name (adds .exe for windows)
+          EXE_NAME="peel"
+          if [ "${{ matrix.os }}" = "win32" ]; then
+            BIN_SRC="target/${{ matrix.target }}/release/$EXE_NAME.exe"
+            BIN_DEST="$EXE_NAME-${{ matrix.os }}-${{ matrix.arch }}.exe"
+          else
+            BIN_SRC="target/${{ matrix.target }}/release/$EXE_NAME"
+            BIN_DEST="$EXE_NAME-${{ matrix.os }}-${{ matrix.arch }}"
+          fi
+          
+          # Move and rename
+          mv "$BIN_SRC" "$BIN_DEST"
+          echo "DEST_PATH=$BIN_DEST" >> $GITHUB_ENV
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.DEST_PATH }}
+          path: ${{ env.DEST_PATH }}
