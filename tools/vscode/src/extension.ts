@@ -18,7 +18,7 @@ export function activate(context: ExtensionContext) {
   }
 
   const workspaceRoot = workspaceFolders[0].uri.fsPath;
-  const executablePath = path.join(workspaceRoot, 'dist', 'peel.exe');
+  const executablePath = 'peel';
   
   const executable: Executable = {
     command: executablePath,
