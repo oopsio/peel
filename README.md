@@ -1,5 +1,7 @@
 # Peel Language
 
+[![Documentation](https://github.com/oopsio/peel/actions/workflows/docs.yml/badge.svg)](https://github.com/oopsio/peel/actions/workflows/docs.yml)
+
 Peel is a modern, high-performance programming language built with Rust. It features an async-first runtime, robust object-oriented programming, and a rich, ECMAScript-inspired standard library.
 
 ## Features
