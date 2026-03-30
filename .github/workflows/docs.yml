@@ -24,8 +24,9 @@ jobs:
         with:
           python-version: 3.x
       - run: pip install zensical
-      - run: cd docs
-      - run: zensical build 
+      - run: |
+          cd docs
+          zensical build -f ../zensical.yaml --clean
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site
