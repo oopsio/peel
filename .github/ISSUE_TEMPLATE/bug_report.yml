@@ -1,0 +1,37 @@
+name: Bug report
+description: Create a report to help us improve
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you did!
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro script
+      description: Provide a minimal `.pel` file to reproduce the issue.
+      render: peel
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Peel Version
+      description: What version of Peel are you using (`peel --version`)?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output or terminal errors.
+      render: shell
