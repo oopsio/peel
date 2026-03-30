@@ -24,11 +24,10 @@ jobs:
         with:
           python-version: 3.x
       - run: pip install zensical
-      # Updated to target the docs directory
-      - run: zensical build docs/ --clean
+      - run: cd docs
+      - run: zensical build 
       - uses: actions/upload-pages-artifact@v4
         with:
-          # This should match the output folder created by your build
           path: site
       - uses: actions/deploy-pages@v4
         id: deployment
