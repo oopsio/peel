@@ -1,0 +1,16 @@
+[package]
+name = "peeldoc"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "peeldoc"
+path = "src/main.rs"
+
+[dependencies]
+peeldoc-parser = { path = "../peeldoc-parser" }
+peeldoc-ssg = { path = "../peeldoc-ssg" }
+peeldoc-models = { path = "../peeldoc-models" }
+anyhow = { workspace = true }
+walkdir = { workspace = true }
+tokio = { workspace = true }

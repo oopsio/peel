@@ -1,0 +1,35 @@
+/// # PeelDoc Demonstration
+/// This file showcases the capabilities of the peeldoc utility.
+/// It demonstrates how comments are extracted and used to generate documentation.
+
+/// Represents a simple user record.
+/// @param name: string - The user's handle.
+/// @param score: number - User's current achievement score.
+/// @return object - A user record object.
+async fn create_user_profile(name: string, score: number) -> object {
+    return { name: name, score: score, status: "active" };
+}
+
+/// Performs a complex mathematical calculation.
+/// @param base: number - The starting value.
+/// @param multiplier: number - The growth factor.
+/// @return number - The calculated result.
+/// @example
+/// let res = calculate_growth(10, 2); // 20
+async fn calculate_growth(base: number, multiplier: number) -> number {
+    return base * multiplier;
+}
+
+/// Sends a message to a remote system.
+/// @param endpoint: string - destination URL.
+/// @param payload: string - the text message.
+/// @tag deprecated - Use the new http.post instead.
+async fn send_legacy_msg(endpoint: string, payload: string) {
+    fmt.println("Sending to", endpoint, ":", payload);
+}
+
+/// Wait for a specific duration.
+/// @param ms: number - Time in milliseconds.
+async fn wait(ms: number) {
+    time.sleep(ms);
+}

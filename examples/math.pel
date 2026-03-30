@@ -1,0 +1,27 @@
+/// This module provides basic math operations for Peel.
+/// @author Peel Team
+
+/// Adds two numbers and returns the result.
+/// @param a: number - First operand
+/// @param b: number - Second operand
+/// @return number - The sum of a and b
+/// @example
+/// let sum = add(10, 20);
+async fn add(a: number, b: number) -> number {
+    return a + b;
+}
+
+/// Subtracts b from a and returns the result.
+/// @param a: number - First operand
+/// @param b: number - Second operand
+/// @return number - The difference of a and b
+async fn sub(a: number, b: number) -> number {
+    return a - b;
+}
+
+/// A class representing a User.
+/// @param name: string
+/// @param level: number
+async fn create_user(name: string, level: number) {
+    return { name: name, level: level, active: true };
+}

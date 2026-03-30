@@ -1,0 +1,10 @@
+[package]
+name = "peeldoc-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+peeldoc-models = { path = "../peeldoc-models" }
+serde = { workspace = true }
+regex = { workspace = true }
+anyhow = { workspace = true }

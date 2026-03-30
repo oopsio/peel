@@ -1,0 +1,48 @@
+{% extends "layout" %}
+{% block content %}
+<section class="module-header">
+    <h1>Module: {{ module.name }}</h1>
+    <p class="path">{{ module.path }}</p>
+</section>
+
+<div class="items">
+    {% for item in module.items %}
+    <article class="doc-item">
+        {% if item.type == "Function" %}
+        <div class="item-header">
+            <h2 id="{{ item.data.name }}">{{ item.data.name }}</h2>
+            <span class="badge function">function</span>
+        </div>
+        <p class="desc">{{ item.data.description }}</p>
+        
+        <div class="signature">
+            <code>{% if item.data.is_async %}async {% endif %}fn {{ item.data.name }}({% for p in item.data.params %}{{ p.name }}: {{ p.param_type | default(value="any") }}{% if not loop.last %}, {% endif %}{% endfor %}) -> {{ item.data.return_type | default(value="void") }}</code>
+        </div>
+
+        {% if item.data.params | length > 0 %}
+        <section class="params">
+            <h3>Parameters</h3>
+            <ul>
+                {% for p in item.data.params %}
+                <li><strong>{{ p.name }}</strong>: {{ p.description | default(value="No description") }} (<code>{{ p.param_type | default(value="any") }}</code>)</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {% if item.data.tags | length > 0 %}
+        <section class="tags">
+            {% for tag in item.data.tags %}
+            <div class="tag-row">
+                <span class="tag-name">@{{ tag.name }}</span>
+                <span class="tag-content">{{ tag.content }}</span>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        {% endif %}
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

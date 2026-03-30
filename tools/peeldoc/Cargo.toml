@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/peeldoc-parser",
+    "crates/peeldoc-models",
+    "crates/peeldoc-ssg",
+    "crates/peeldoc-cli",
+]
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+walkdir = "2.3"
+regex = "1.5"
+tera = "1.15" # Templating engine for SSG
+tokio = { version = "1.0", features = ["full"] }
