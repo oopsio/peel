@@ -1,0 +1,48 @@
+// This file contains intentional issues for pllint testing
+
+// Naming: Banned names
+let data = 10;
+let temp = "loading";
+let foo = true;
+let bar = 1.5;
+
+// Naming: Casing issues
+struct bad_struct_name {
+    field1: int
+}
+
+fn BadFunctionName(val: int) {
+    let X = val; // Upper case variable
+}
+
+// Complexity: Too many parameters
+fn complex_func(a: int, b: int, c: int, d: int, e: int, f: int) {
+    return a + b + c + d + e + f;
+}
+
+// Style: Empty blocks
+if true {
+}
+
+while false {
+}
+
+// Style: Double negation
+let is_ready = !!true;
+
+// Bug: Division by zero
+let error_val = 100 / 0;
+
+// Naming: Too short
+let x = 5; // Should be fine as it's common
+let q = 10; // Might trigger info
+
+// Naming: Too long
+let this_variable_name_is_waaaaay_too_long_for_any_good_reason = 0;
+
+fn main() {
+    let res = complex_func(1, 2, 3, 4, 5, 6);
+    if res > 10 {
+        let msg = "Result is large";
+    }
+}
