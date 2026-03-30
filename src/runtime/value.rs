@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use futures::future::BoxFuture;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum PeelValue {
     Int(i64),

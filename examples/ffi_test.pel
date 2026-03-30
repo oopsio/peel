@@ -1,0 +1,13 @@
+extern "C" "long long add(long long a, long long b) { return a + b; }" {
+    fn add(a: int, b: int) -> int;
+}
+
+let result = add(5, 7);
+fmt.println("Result from C: ", result);
+
+extern "nasm" "global sub_asm\nsection .text\nsub_asm:\nmov rax, rcx\nsub rax, rdx\nret\n" {
+    fn sub_asm(a: int, b: int) -> int;
+}
+
+let result2 = sub_asm(20, 8);
+fmt.println("Result from NASM: ", result2);

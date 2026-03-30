@@ -54,6 +54,10 @@ pub enum Expr {
         name: String,
         inner: Option<Box<Expr>>,
     },
+    TypeCast {
+        expr: Box<Expr>,
+        ty: PeelType,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -85,6 +89,7 @@ pub enum Pattern {
     Wildcard,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     Let {
@@ -114,7 +119,11 @@ pub enum Stmt {
     Return(Option<Expr>),
     Expr(Expr),
     Func(Box<Func>),
-    Import(String),
+    Import {
+        path: String,
+        symbols: Option<Vec<String>>,
+    },
+    Export(Box<Stmt>),
     Struct {
         name: String,
         fields: Vec<(String, PeelType)>,
@@ -122,6 +131,11 @@ pub enum Stmt {
     Impl {
         target: String,
         methods: Vec<Func>,
+    },
+    ExternBlock {
+        lang: String,
+        body: String,
+        declarations: Vec<Func>,
     },
 }
 

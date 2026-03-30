@@ -1,7 +1,7 @@
 use crate::lexer::Token;
 use crate::ast::{Literal, Expr, Stmt, Func, Param, Module, Op, UnaryOp, MatchArm, Pattern};
 use crate::ast::types::PeelType;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use logos::Logos;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -14,21 +14,80 @@ enum Precedence {
     Comparison, // < > <= >=
     Term,       // + -
     Factor,     // * /
+    Cast,       // :
     Unary,      // ! -
     Call,       // . () []
 }
 pub struct Parser<'a> {
-    tokens: Vec<Token>,
+    tokens: Vec<(Token, std::ops::Range<usize>)>,
     pos: usize,
-    _source: &'a str,
+    source: &'a str,
+    file_path: &'a str,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(source: &'a str) -> Self {
+    pub fn new(source: &'a str, file_path: &'a str) -> Self {
         let lex = Token::lexer(source);
-        let mut tokens: Vec<Token> = lex.map(|t| t.unwrap_or(Token::Ident("ERROR".to_string()))).collect();
-        tokens.push(Token::EOF);
-        Self { tokens, pos: 0, _source: source }
+        let mut tokens: Vec<(Token, std::ops::Range<usize>)> = lex.spanned()
+            .map(|(t, span)| (t.unwrap_or(Token::Ident("ERROR".to_string())), span))
+            .collect();
+        tokens.push((Token::EOF, source.len()..source.len()));
+        Self { tokens, pos: 0, source, file_path }
+    }
+
+    fn error(&self, message: &str) -> anyhow::Error {
+        use colored::Colorize;
+        let span = &self.tokens[self.pos.min(self.tokens.len().saturating_sub(1))].1;
+        
+        let mut line_num = 1;
+        let mut line_start = 0;
+        let bytes = self.source.as_bytes();
+        
+        for i in 0..span.start {
+            if i < bytes.len() && bytes[i] == b'\n' {
+                line_num += 1;
+                line_start = i + 1;
+            }
+        }
+        
+        let mut line_end = self.source.len();
+        for i in line_start..self.source.len() {
+            if bytes[i] == b'\n' {
+                line_end = i;
+                break;
+            }
+        }
+        
+        let line_content = if line_start <= line_end {
+            &self.source[line_start..line_end]
+        } else {
+            ""
+        };
+        
+        let col = if span.start >= line_start { span.start - line_start } else { 0 };
+        let end_col = if span.end >= line_start { span.end - line_start } else { 0 };
+        let length = std::cmp::max(1, end_col.saturating_sub(col));
+        let span_len = std::cmp::min(length, line_content.len().saturating_sub(col).max(1));
+        let carets = "^".repeat(span_len);
+        
+        let msg = format!(
+            "{}: {}\n  {} {}:{}:{}\n   {}\n{:>3} {} {}\n    {} {}{} {}",
+            "error".red().bold(),
+            message.bold(),
+            "-->".blue().bold(),
+            self.file_path,
+            line_num,
+            col + 1,
+            "|".blue().bold(),
+            line_num.to_string().blue().bold(),
+            "|".blue().bold(),
+            line_content,
+            "|".blue().bold(),
+            " ".repeat(col),
+            carets.red().bold(),
+            message.red().bold()
+        );
+        anyhow::anyhow!(msg)
     }
 
     pub fn parse_module(&mut self) -> Result<Module> {
@@ -59,8 +118,12 @@ impl<'a> Parser<'a> {
             self.parse_return_stmt()?
         } else if self.match_token(Token::Import) {
             self.parse_import_stmt()?
+        } else if self.match_token(Token::Export) {
+            self.parse_export_stmt()?
         } else if self.match_token(Token::Struct) {
             self.parse_struct_stmt()?
+        } else if self.match_token(Token::Extern) {
+            self.parse_extern_block()?
         } else if self.match_token(Token::Impl) {
             self.parse_impl_stmt()?
         } else {
@@ -107,14 +170,13 @@ impl<'a> Parser<'a> {
                     self.consume_ident("Expected parameter name")?
                 };
 
-                let mut p_ty = PeelType::Unknown;
-                if self.match_token(Token::Colon) {
-                    p_ty = self.parse_type()?;
+                let p_ty = if self.match_token(Token::Colon) {
+                    self.parse_type()?
                 } else if p_name == "self" {
-                    p_ty = PeelType::Unknown; // Type Checker will fill this with the struct type
+                    PeelType::Unknown // Type Checker will fill this with the struct type
                 } else {
-                    return Err(anyhow!("Expected ':' after parameter name"));
-                }
+                    return Err(self.error("Expected ':' after parameter name"));
+                };
 
                 params.push(Param { name: p_name, ty: p_ty, is_mut });
 
@@ -174,11 +236,62 @@ impl<'a> Parser<'a> {
             if let Stmt::Func(f) = self.parse_func_stmt(is_async)? {
                 methods.push(*f);
             } else {
-                return Err(anyhow!("Expected function in 'impl' block"));
+                return Err(self.error("Expected function in 'impl' block"));
             }
         }
         self.consume(Token::RBrace, "Expected '}' after 'impl' block")?;
         Ok(Stmt::Impl { target, methods })
+    }
+
+    fn parse_extern_block(&mut self) -> Result<Stmt> {
+        let token = self.advance();
+        let lang = match token {
+            Token::String(s) => s,
+            _ => return Err(self.error("Expected string literal for language (e.g. \"C\" or \"nasm\")")),
+        };
+
+        let token = self.advance();
+        let body = match token {
+            Token::String(s) => s,
+            _ => return Err(self.error("Expected string literal for inline code")),
+        };
+
+        self.consume(Token::LBrace, "Expected '{' after extern inline code")?;
+        let mut declarations = Vec::new();
+        while !self.check(Token::RBrace) && !self.is_at_end() {
+            self.consume(Token::Fn, "Expected 'fn' in extern block")?;
+            
+            let name = self.consume_ident("Expected function name")?;
+            self.consume(Token::LParen, "Expected '(' after function name")?;
+            let mut params = Vec::new();
+            if !self.check(Token::RParen) {
+                loop {
+                    let mut is_mut = false;
+                    if self.match_token(Token::Mut) { is_mut = true; }
+                    let p_name = self.consume_ident("Expected parameter name")?;
+                    self.consume(Token::Colon, "Expected ':' after parameter name")?;
+                    let p_ty = self.parse_type()?;
+                    params.push(Param { name: p_name, ty: p_ty, is_mut });
+                    if !self.match_token(Token::Comma) { break; }
+                }
+            }
+            self.consume(Token::RParen, "Expected ')' after parameters")?;
+            let mut ret_ty = PeelType::Void;
+            if self.match_token(Token::Arrow) {
+                ret_ty = self.parse_type()?;
+            }
+            self.consume(Token::Semicolon, "Expected ';' after extern function declaration")?;
+            
+            declarations.push(Func {
+                name,
+                params,
+                ret_ty,
+                body: vec![],
+                is_async: false,
+            });
+        }
+        self.consume(Token::RBrace, "Expected '}' after extern block")?;
+        Ok(Stmt::ExternBlock { lang, body, declarations })
     }
 
     fn parse_type(&mut self) -> Result<PeelType> {
@@ -217,8 +330,47 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_import_stmt(&mut self) -> Result<Stmt> {
-        let name = self.consume_ident("Expected module name after import")?;
-        Ok(Stmt::Import(name))
+        let mut symbols = None;
+
+        if self.match_token(Token::LBrace) {
+            let mut syms = Vec::new();
+            while !self.check(Token::RBrace) && !self.is_at_end() {
+                syms.push(self.consume_ident("Expected symbol name")?);
+                if !self.match_token(Token::Comma) { break; }
+            }
+            self.consume(Token::RBrace, "Expected '}' after import symbols")?;
+            self.consume(Token::Ident("from".to_string()), "Expected 'from' after import symbols")?;
+            symbols = Some(syms);
+        }
+
+        let token = self.advance();
+        let path = match token {
+            Token::String(s) => s,
+            Token::Ident(s) => s, // Support legacy unquoted identifiers for now
+            _ => return Err(self.error(&format!("Expected string literal for module path, got {:?}", token))),
+        };
+
+        Ok(Stmt::Import { path, symbols })
+    }
+
+    fn parse_export_stmt(&mut self) -> Result<Stmt> {
+        let stmt = if self.match_token(Token::Let) {
+            self.parse_let_stmt(false)?
+        } else if self.match_token(Token::Mut) {
+            self.consume(Token::Let, "Expected 'let' after 'mut'")?;
+            self.parse_let_stmt(true)?
+        } else if self.match_token(Token::Fn) {
+            self.parse_func_stmt(false)?
+        } else if self.match_token(Token::Async) {
+            self.consume(Token::Fn, "Expected 'fn' after 'async'")?;
+            self.parse_func_stmt(true)?
+        } else if self.match_token(Token::Struct) {
+            self.parse_struct_stmt()?
+        } else {
+            return Err(self.error("Expected declaration after 'export' (let, fn, struct)"));
+        };
+
+        Ok(Stmt::Export(Box::new(stmt)))
     }
 
     fn parse_if_stmt(&mut self) -> Result<Stmt> {
@@ -312,7 +464,7 @@ impl<'a> Parser<'a> {
             Token::Err => self.parse_enum_literal("Err".to_string()),
             Token::Some => self.parse_enum_literal("Some".to_string()),
             Token::SelfToken => Ok(Expr::Ident("self".to_string())),
-            _ => Err(anyhow!("Unexpected token in expression: {:?}", token)),
+            _ => Err(self.error(&format!("Unexpected token in expression: {:?}", token))),
         }
     }
 
@@ -354,6 +506,10 @@ impl<'a> Parser<'a> {
                 Ok(Expr::Index { target: Box::new(left), index: Box::new(index) })
             }
             Token::Question => Ok(Expr::Try(Box::new(left))),
+            Token::Colon => {
+                let ty = self.parse_type()?;
+                Ok(Expr::TypeCast { expr: Box::new(left), ty })
+            }
             _ => Ok(left),
         }
     }
@@ -366,6 +522,7 @@ impl<'a> Parser<'a> {
             Token::Less | Token::Greater | Token::LessEqual | Token::GreaterEqual => Precedence::Comparison,
             Token::Plus | Token::Minus => Precedence::Term,
             Token::Star | Token::Slash => Precedence::Factor,
+            Token::Colon => Precedence::Cast,
             Token::LParen | Token::Dot | Token::LBracket | Token::Question => Precedence::Call,
             _ => Precedence::None,
         }
@@ -444,7 +601,7 @@ impl<'a> Parser<'a> {
                 Token::True => Ok(Pattern::Literal(Literal::Bool(true))),
                 Token::False => Ok(Pattern::Literal(Literal::Bool(false))),
                 Token::Ident(name) => Ok(Pattern::Ident(name)),
-                _ => Err(anyhow!("Unexpected token in pattern: {:?}", token)),
+                _ => Err(self.error(&format!("Unexpected token in pattern: {:?}", token))),
             }
         }
     }
@@ -471,7 +628,7 @@ impl<'a> Parser<'a> {
         if let Some(name) = self.match_ident() {
             Ok(name)
         } else {
-            Err(anyhow!(message.to_string()))
+            Err(self.error(message))
         }
     }
 
@@ -491,7 +648,7 @@ impl<'a> Parser<'a> {
 
     fn peek(&self) -> Token {
         if self.is_at_end() { return Token::EOF; }
-        self.tokens[self.pos].clone()
+        self.tokens[self.pos].0.clone()
     }
 
     fn advance(&mut self) -> Token {
@@ -500,18 +657,18 @@ impl<'a> Parser<'a> {
     }
 
     fn previous(&self) -> Token {
-        self.tokens[self.pos - 1].clone()
+        self.tokens[self.pos - 1].0.clone()
     }
 
     fn is_at_end(&self) -> bool {
-        self.tokens[self.pos] == Token::EOF
+        self.tokens[self.pos].0 == Token::EOF
     }
 
     fn consume(&mut self, token: Token, message: &str) -> Result<Token> {
         if self.check(token) {
             Ok(self.advance())
         } else {
-            Err(anyhow!(message.to_string()))
+            Err(self.error(message))
         }
     }
 
@@ -519,7 +676,7 @@ impl<'a> Parser<'a> {
         // Check if next two tokens are Ident and Colon
         // self.pos is at Ident. Peek is LBrace at self.pos
         if self.pos + 2 >= self.tokens.len() { return false; }
-        match (&self.tokens[self.pos + 1], &self.tokens[self.pos + 2]) {
+        match (&self.tokens[self.pos + 1].0, &self.tokens[self.pos + 2].0) {
             (Token::Ident(_), Token::Colon) => true,
             _ => false,
         }

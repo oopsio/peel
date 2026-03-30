@@ -108,7 +108,16 @@ impl Checker {
             Stmt::Expr(expr) => {
                 self.check_expr(expr)?;
             }
-            Stmt::Import(_) => {} // Handled by runtime/resolver
+            Stmt::Import { symbols, .. } => {
+                if let Some(syms) = symbols {
+                    for sym in syms {
+                        self.define(sym, PeelType::Unknown, false);
+                    }
+                }
+            }
+            Stmt::Export(inner) => {
+                self.check_stmt(inner)?;
+            }
             Stmt::Struct { name, fields } => {
                 self.structs.insert(name.clone(), fields.clone());
             }
@@ -126,6 +135,16 @@ impl Checker {
                     });
                 }
                 self.methods.entry(target.clone()).or_insert_with(HashMap::new).extend(method_map);
+            }
+            Stmt::ExternBlock { declarations, .. } => {
+                for func in declarations {
+                    let param_types: Vec<PeelType> = func.params.iter().map(|p| p.ty.clone()).collect();
+                    self.define(&func.name, PeelType::Func {
+                        params: param_types,
+                        ret: Box::new(func.ret_ty.clone()),
+                        is_async: func.is_async,
+                    }, false);
+                }
             }
             _ => {}
         }
@@ -279,6 +298,10 @@ impl Checker {
                     PeelType::Unknown => Ok(PeelType::Unknown),
                     _ => Err(anyhow!("Cannot index into non-list type {:?}", t_ty)),
                 }
+            }
+            Expr::TypeCast { expr, ty } => {
+                let _ = self.check_expr(expr)?;
+                Ok(ty.clone())
             }
         }
     }

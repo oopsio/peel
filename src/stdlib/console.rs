@@ -1,5 +1,4 @@
 use crate::runtime::value::{PeelValue, NativeFunc};
-use crate::runtime::interpreter::RuntimeResult;
 use std::sync::Arc;
 use std::time::Instant;
 use std::collections::HashMap;

@@ -126,7 +126,7 @@ async fn install_package(name: &str, version: Option<String>) -> Result<()> {
     }
 
     pb.set_message("Extracting...");
-    let module_dir = Path::new("peel_modules").join(name);
+    let module_dir = Path::new(".peel").join("modules").join(name);
     fs::create_dir_all(&module_dir)?;
 
     let decoder = GzDecoder::new(&bytes[..]);

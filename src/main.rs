@@ -33,13 +33,20 @@ enum Commands {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
+    if let Err(e) = run_cli().await {
+        eprintln!("{}", e);
+        std::process::exit(1);
+    }
+}
+
+async fn run_cli() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
         Commands::Run { path } => {
-            let source = fs::read_to_string(path)?;
-            let mut parser = Parser::new(&source);
+            let source = fs::read_to_string(&path)?;
+            let mut parser = Parser::new(&source, &path);
             let module = parser.parse_module()?;
 
             // 1. Type Check
@@ -55,6 +62,7 @@ async fn main() -> Result<()> {
 
             // 2. Initialize Runtime & StdLib
             let mut interpreter = crate::runtime::Interpreter::new();
+            interpreter.current_path = std::path::Path::new(&path).parent().unwrap_or(std::path::Path::new(".")).to_path_buf();
             crate::stdlib::register_stdlib(interpreter.env.clone(), interpreter.methods.clone());
 
             // 3. Execute
@@ -63,8 +71,8 @@ async fn main() -> Result<()> {
             }
         }
         Commands::Parse { path } => {
-            let source = fs::read_to_string(path)?;
-            let mut parser = Parser::new(&source);
+            let source = fs::read_to_string(&path)?;
+            let mut parser = Parser::new(&source, &path);
             let module = parser.parse_module().map_err(|e| anyhow::anyhow!(e))?;
             println!("{:#?}", module);
         }

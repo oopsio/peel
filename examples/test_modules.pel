@@ -1,0 +1,9 @@
+import { add, pi } from "./math_utils.pel"
+
+fn main() {
+    let result = add(10: number, 20: number)
+    console.log("10 + 20 =", result)
+    console.log("PI is", pi)
+}
+
+main()

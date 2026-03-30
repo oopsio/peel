@@ -24,6 +24,10 @@ pub enum Token {
     Return,
     #[token("import")]
     Import,
+    #[token("export")]
+    Export,
+    #[token("extern")]
+    Extern,
     #[token("struct")]
     Struct,
     #[token("impl")]
