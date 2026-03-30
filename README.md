@@ -2,43 +2,25 @@
 
 [![Documentation](https://github.com/oopsio/peel/actions/workflows/docs.yml/badge.svg)](https://github.com/oopsio/peel/actions/workflows/docs.yml)
 
-Peel is a modern, high-performance programming language built with Rust. It features an async-first runtime, robust object-oriented programming, and a rich, ECMAScript-inspired standard library.
+Peel is a modern, high-performance programming language that empowers people to build software, just more easier.
 
-## Features
+## Developing
+For development, you need these tools installed on your system to get started.
 
-- **Async Native**: Built-in support for `async`/`await` powered by `tokio`.
-- **Structured OOP**: Defined types with `struct` and shared behaviors via `impl` blocks.
-- **Rich StdLib**: Comprehensive sets for `console`, `Math`, and `JSON`.
-- **Integrated Tooling**: Comes with **pepm**, a modern package manager.
-- **Fast Performance**: Compiled and optimized in Rust for maximum execution speed.
+- [`Rust`](https://rust-lang.org/)
+- [`Bun`](https://bun.com/)
+- [`Python`](https://www.python.org/downloads/)
+- [`uv`](https://docs.astral.sh/uv/)
 
-## Quick Start
+## Compiling from source
 
-### Building the Project
-Use the unified build script to compile the runtime and package manager:
+To compile Peel from source, you need to run
+
 ```bash
-bun scripts/build.js
-```
-The binaries will be placed in the `dist/` directory.
-
-### Running a Script
-```bash
-./dist/peel run examples/hello.pel
+cargo build --release
 ```
 
-### Using the Package Manager (pepm)
-Initialize a new project and add dependencies:
-```bash
-./dist/pepm init
-./dist/pepm add some-package
-```
-
-## Project Structure
-
-- `src/`: Core Peel runtime, lexer, parser, and interpreter.
-- `crates/pepm/`: The Peel Package Manager implementation.
-- `stdlib/`: Built-in native modules and prototypes.
-- `examples/`: Guided demonstrations of async, OOP, and standard library features.
+Then navigate to your output in `./target/release/peel.exe`.
 
 ## License
 Peel is licensed under the [MIT License](LICENSE).
