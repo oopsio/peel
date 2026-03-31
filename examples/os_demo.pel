@@ -1,0 +1,20 @@
+fmt.println("Peel OS Module Demo");
+fmt.println("-------------------");
+
+fmt.println("Platform: ", os.platform());
+fmt.println("Architecture: ", os.arch());
+fmt.println("Hostname: ", os.hostname());
+fmt.println("CWD: ", os.cwd());
+fmt.println("Uptime: ", os.uptime(), " seconds");
+
+let total_mem = os.total_memory() / (1024 * 1024);
+let free_mem = os.free_memory() / (1024 * 1024);
+fmt.println("Memory: ", free_mem, "MB free / ", total_mem, "MB total");
+
+fmt.println("Setting ENV variable PEEL_TEST=HelloPeel...");
+os.setenv("PEEL_TEST", "HelloPeel");
+fmt.println("Value of PEEL_TEST: ", os.getenv("PEEL_TEST"));
+
+os.cpu_usage(); // Initialize tracking
+time.sleep(100); // Wait 100ms
+fmt.println("CPU Usage: ", os.cpu_usage(), "%");

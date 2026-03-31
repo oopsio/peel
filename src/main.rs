@@ -60,6 +60,7 @@ async fn run_cli() -> Result<()> {
             checker.define("JSON", PeelType::Unknown, false);
             checker.define("sqlite", PeelType::Unknown, false);
             checker.define("crypto", PeelType::Unknown, false);
+            checker.define("os", PeelType::Unknown, false);
             checker.check_module(&module)?;
 
             // 2. Initialize Runtime & StdLib

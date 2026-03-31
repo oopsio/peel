@@ -12,6 +12,7 @@ pub mod json;
 pub mod math;
 pub mod sqlite;
 pub mod crypto;
+pub mod os;
 
 pub fn register_stdlib(
     env: Arc<RwLock<Environment>>,
@@ -58,6 +59,14 @@ pub fn register_stdlib(
         PeelValue::Object {
             struct_name: None,
             fields: Arc::new(Mutex::new(crypto::register())),
+        },
+    );
+    
+    e.define(
+        "os".to_string(),
+        PeelValue::Object {
+            struct_name: None,
+            fields: Arc::new(Mutex::new(os::register())),
         },
     );
 
