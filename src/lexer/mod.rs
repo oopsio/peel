@@ -67,7 +67,28 @@ pub enum Token {
 
     #[regex(r#""([^"\\]|\\.)*""#, |lex| {
         let s = lex.slice();
-        s[1..s.len()-1].to_string()
+        let inner = &s[1..s.len()-1];
+        let mut res = String::with_capacity(inner.len());
+        let mut chars = inner.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c == '\\' {
+                match chars.next() {
+                    Some('n') => res.push('\n'),
+                    Some('r') => res.push('\r'),
+                    Some('t') => res.push('\t'),
+                    Some('\\') => res.push('\\'),
+                    Some('\"') => res.push('\"'),
+                    Some(other) => {
+                        res.push('\\');
+                        res.push(other);
+                    }
+                    None => res.push('\\'),
+                }
+            } else {
+                res.push(c);
+            }
+        }
+        res
     })]
     String(String),
 
