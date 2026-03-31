@@ -1,0 +1,7 @@
+[elements]
+name = { type = "string", required = true }
+version = { type = "string", required = true }
+
+[elements.dependencies]
+type = "collection"
+typeof = "string"
