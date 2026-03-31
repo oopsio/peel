@@ -1,0 +1,33 @@
+// Peel GUI Demo using Nuklear
+fmt.println("Starting GUI...");
+gui.init(400, 400, "Peel GUI Demo");
+
+let count = 0;
+
+while (!gui.should_close()) {
+    gui.poll();
+    
+    if (gui.window_begin("Peel Counter", 50, 50, 300, 300, 0)) {
+        gui.layout_row_dynamic(30, 1);
+        gui.label("Welcome to Peel GUI!");
+        gui.label("Click the button below:");
+        
+        if (gui.button("Increment: " + count)) {
+            count = count + 1;
+            fmt.println("Count is now: " + count);
+        }
+        
+        if (gui.button("Reset")) {
+            count = 0;
+        }
+    }
+    gui.window_end();
+    
+    gui.render();
+
+    // Sleep for ~16ms to target ~60 FPS and prevent CPU hogging
+    time.sleep(16);
+}
+
+gui.shutdown();
+fmt.println("GUI closed.");

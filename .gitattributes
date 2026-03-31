@@ -1,1 +1,3 @@
 built/** binary
+src/stdlib/gui/nuklear_*.h linguist-vendored
+src/stdlib/gui/nuklear.h linguist-vendored

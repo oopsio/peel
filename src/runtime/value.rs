@@ -42,6 +42,30 @@ pub enum PeelValue {
     Generator(Arc<Mutex<crate::runtime::interpreter::GeneratorState>>),
 }
 
+impl PeelValue {
+    pub fn as_int(&self) -> Option<i64> {
+        match self {
+            PeelValue::Int(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    pub fn as_float(&self) -> Option<f64> {
+        match self {
+            PeelValue::Float(f) => Some(*f),
+            PeelValue::Int(i) => Some(*i as f64),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<String> {
+        match self {
+            PeelValue::String(s) => Some(s.clone()),
+            _ => None,
+        }
+    }
+}
+
 impl Eq for PeelValue {}
 
 impl std::hash::Hash for PeelValue {

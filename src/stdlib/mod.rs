@@ -13,6 +13,7 @@ pub mod math;
 pub mod sqlite;
 pub mod crypto;
 pub mod os;
+pub mod gui;
 
 pub fn register_stdlib(
     env: Arc<RwLock<Environment>>,
@@ -67,6 +68,14 @@ pub fn register_stdlib(
         PeelValue::Object {
             struct_name: None,
             fields: Arc::new(Mutex::new(os::register())),
+        },
+    );
+
+    e.define(
+        "gui".to_string(),
+        PeelValue::Object {
+            struct_name: None,
+            fields: Arc::new(Mutex::new(gui::register())),
         },
     );
 
