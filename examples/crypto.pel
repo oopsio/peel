@@ -1,0 +1,33 @@
+// examples/crypto.pel
+// Showcase of the Peel crypto standard library module
+
+let data = "Hello, Peel!";
+let key = "this-is-a-32-byte-long-key-!!!!!"; // 32 bytes for AES-256
+let iv = "16-byte-long-iv-";             // 16 bytes for AES
+
+fmt.println("--- Hashing ---");
+let sha256_res = crypto.sha256(data);
+fmt.println("SHA256:", sha256_res);
+
+let sha512_res = crypto.sha512(data);
+fmt.println("SHA512:", sha512_res);
+
+let md5_res = crypto.md5(data);
+fmt.println("MD5:", md5_res);
+
+fmt.println("\n--- HMAC ---");
+let hmac_res = crypto.hmac(data, "my-secret-key");
+fmt.println("HMAC-SHA256:", hmac_res);
+
+fmt.println("\n--- AES Encryption (CBC) ---");
+let encrypted = crypto.aes_encrypt(data, key, iv);
+fmt.println("Encrypted:", encrypted);
+
+let decrypted = crypto.aes_decrypt(encrypted, key, iv);
+fmt.println("Decrypted:", decrypted);
+
+if (data == decrypted) {
+    fmt.println("\nSuccess: Decrypted data matches original!");
+} else {
+    fmt.println("\nError: Decrypted data does not match!");
+}

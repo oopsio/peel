@@ -511,7 +511,6 @@ impl Interpreter {
                 }
                 Ok(PeelValue::Void)
             }
-            _ => Ok(PeelValue::Void),
         }
     }
 
@@ -636,7 +635,6 @@ impl Interpreter {
                                         param.name.clone(),
                                         PeelValue::List(Arc::new(std::sync::Mutex::new(rest_args)))
                                     );
-                                    arg_index = arg_vals.len();
                                     break;
                                 } else {
                                     let val = match (arg_vals.get(arg_index), &param.default_value) {
@@ -709,7 +707,6 @@ impl Interpreter {
                                         param.name.clone(),
                                         PeelValue::List(Arc::new(std::sync::Mutex::new(rest_args)))
                                     );
-                                    arg_index = arg_vals.len();
                                     break;
                                 } else {
                                     let val = match (arg_vals.get(arg_index), &param.default_value) {

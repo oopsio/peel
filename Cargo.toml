@@ -27,5 +27,7 @@ async-trait = "0.1"
 lazy_static = "1.5.0"
 libloading = "0.9.0"
 tower-lsp = "0.20.0"
-openssl = { version = "0.10", optional = true }
 rusqlite = { version = "0.39.0", features = ["bundled"] }
+
+[build-dependencies]
+cc = "1.0"
