@@ -30,6 +30,8 @@ pub enum Token {
     Extern,
     #[token("struct")]
     Struct,
+    #[token("class")]
+    Class,
     #[token("impl")]
     Impl,
     #[token("self")]
@@ -40,6 +42,12 @@ pub enum Token {
     While,
     #[token("in")]
     In,
+    #[token("yield")]
+    Yield,
+    #[token("get")]
+    Get,
+    #[token("set")]
+    Set,
     #[token("true")]
     True,
     #[token("false")]
@@ -100,6 +108,12 @@ pub enum Token {
     Not,
     #[token("?")]
     Question,
+    #[token("?.")]
+    QuestionDot,
+    #[token("??")]
+    DoubleQuestion,
+    #[token("...")]
+    Spread,
     #[token("->")]
     Arrow,
     #[token("=>")]

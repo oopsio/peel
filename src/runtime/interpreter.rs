@@ -5,6 +5,12 @@ use async_recursion::async_recursion;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+#[derive(Debug)]
+pub struct GeneratorState {
+    // Basic placeholder for now, to make the code compile
+    pub active: bool,
+}
+
 pub type RuntimeResult<T> = Result<T>;
 
 pub struct Environment {
@@ -95,7 +101,7 @@ impl Interpreter {
             Stmt::Func(func) => {
                 let peel_func = PeelFunc {
                     name: func.name.clone(),
-                    params: func.params.iter().map(|p| p.name.clone()).collect(),
+                    params: func.params.clone(),
                     body: func.body.clone(),
                     _is_async: func.is_async,
                 };
@@ -174,12 +180,44 @@ impl Interpreter {
                     .insert(name.clone(), field_names);
                 Ok(PeelValue::Void)
             }
+            Stmt::Class {
+                name,
+                methods,
+                getters,
+                setters,
+            } => {
+                // For classes, we register an empty struct basically, or all field names if we could.
+                // Currently Peel structs are just names and fields. Classes don't declare fields statically.
+                self.structs
+                    .write()
+                    .unwrap()
+                    .insert(name.clone(), Vec::new());
+                    
+                let mut method_map = HashMap::new();
+                for m in methods.iter().chain(getters.iter()).chain(setters.iter()) {
+                    let peel_func = PeelFunc {
+                        name: m.name.clone(),
+                        params: m.params.clone(),
+                        body: m.body.clone(),
+                        _is_async: m.is_async,
+                    };
+                    method_map.insert(m.name.clone(), PeelValue::Function(Arc::new(peel_func)));
+                }
+                self.methods
+                    .write()
+                    .unwrap()
+                    .entry(name.clone())
+                    .or_insert_with(HashMap::new)
+                    .extend(method_map);
+                
+                Ok(PeelValue::Void)
+            }
             Stmt::Impl { target, methods } => {
                 let mut method_map = HashMap::new();
                 for m in methods {
                     let peel_func = PeelFunc {
                         name: m.name.clone(),
-                        params: m.params.iter().map(|p| p.name.clone()).collect(),
+                        params: m.params.clone(),
                         body: m.body.clone(),
                         _is_async: m.is_async,
                     };
@@ -551,6 +589,9 @@ impl Interpreter {
                         PeelValue::Bool(_) => Some("Boolean".to_string()),
                         PeelValue::List(_) => Some("Array".to_string()),
                         PeelValue::Map(_) => Some("Map".to_string()),
+                        PeelValue::Set(_) => Some("Set".to_string()),
+                        PeelValue::WeakMap(_) => Some("WeakMap".to_string()),
+                        PeelValue::WeakSet(_) => Some("WeakSet".to_string()),
                         _ => None,
                     };
 
@@ -568,18 +609,44 @@ impl Interpreter {
                 if let (Some(method), Some(instance)) = (method_to_call, instance_val) {
                     let mut arg_vals = vec![instance.clone()];
                     for arg in args {
-                        arg_vals.push(self.eval_expr(arg).await?);
+                        if let Expr::Spread(inner) = arg {
+                            if let PeelValue::List(l) = self.eval_expr(inner).await? {
+                                arg_vals.extend(l.lock().unwrap().clone());
+                            } else {
+                                return Err(anyhow!("Cannot spread non-list value"));
+                            }
+                        } else {
+                            arg_vals.push(self.eval_expr(arg).await?);
+                        }
                     }
 
                     match method {
                         PeelValue::Function(f) => {
                             let child_env =
                                 Arc::new(RwLock::new(Environment::child(self.env.clone())));
-                            for (i, param_name) in f.params.iter().enumerate() {
-                                child_env
-                                    .write()
-                                    .unwrap()
-                                    .define(param_name.clone(), arg_vals[i].clone());
+                            let mut arg_index = 0;
+                            for param in &f.params {
+                                if param.is_rest {
+                                    let rest_args = if arg_index < arg_vals.len() {
+                                        arg_vals[arg_index..].to_vec()
+                                    } else {
+                                        Vec::new()
+                                    };
+                                    child_env.write().unwrap().define(
+                                        param.name.clone(),
+                                        PeelValue::List(Arc::new(std::sync::Mutex::new(rest_args)))
+                                    );
+                                    arg_index = arg_vals.len();
+                                    break;
+                                } else {
+                                    let val = match (arg_vals.get(arg_index), &param.default_value) {
+                                        (Some(v), _) => v.clone(),
+                                        (None, Some(def_expr)) => self.eval_expr(def_expr).await?,
+                                        (None, None) => PeelValue::Void,
+                                    };
+                                    child_env.write().unwrap().define(param.name.clone(), val);
+                                    arg_index += 1;
+                                }
                             }
                             let mut sub_interpreter = Interpreter {
                                 env: child_env,
@@ -603,20 +670,56 @@ impl Interpreter {
                     }
                 } else {
                     let func_val = self.eval_expr(callee).await?;
+                    if func_val == PeelValue::Void {
+                        if let Expr::OptionalChaining(_, _) = callee.as_ref() {
+                            return Ok(PeelValue::Void);
+                        }
+                        if let Expr::FieldAccess { target, .. } = callee.as_ref() {
+                            if let Expr::OptionalChaining(_, _) = target.as_ref() {
+                                return Ok(PeelValue::Void);
+                            }
+                        }
+                    }
                     let mut arg_vals = Vec::new();
                     for arg in args {
-                        arg_vals.push(self.eval_expr(arg).await?);
+                        if let Expr::Spread(inner) = arg {
+                            if let PeelValue::List(l) = self.eval_expr(inner).await? {
+                                arg_vals.extend(l.lock().unwrap().clone());
+                            } else {
+                                return Err(anyhow!("Cannot spread non-list value"));
+                            }
+                        } else {
+                            arg_vals.push(self.eval_expr(arg).await?);
+                        }
                     }
 
                     match func_val {
                         PeelValue::Function(f) => {
                             let child_env =
                                 Arc::new(RwLock::new(Environment::child(self.env.clone())));
-                            for (i, param) in f.params.iter().enumerate() {
-                                child_env
-                                    .write()
-                                    .unwrap()
-                                    .define(param.clone(), arg_vals[i].clone());
+                            let mut arg_index = 0;
+                            for param in &f.params {
+                                if param.is_rest {
+                                    let rest_args = if arg_index < arg_vals.len() {
+                                        arg_vals[arg_index..].to_vec()
+                                    } else {
+                                        Vec::new()
+                                    };
+                                    child_env.write().unwrap().define(
+                                        param.name.clone(),
+                                        PeelValue::List(Arc::new(std::sync::Mutex::new(rest_args)))
+                                    );
+                                    arg_index = arg_vals.len();
+                                    break;
+                                } else {
+                                    let val = match (arg_vals.get(arg_index), &param.default_value) {
+                                        (Some(v), _) => v.clone(),
+                                        (None, Some(def_expr)) => self.eval_expr(def_expr).await?,
+                                        (None, None) => PeelValue::Void,
+                                    };
+                                    child_env.write().unwrap().define(param.name.clone(), val);
+                                    arg_index += 1;
+                                }
                             }
                             let mut sub_interpreter = Interpreter {
                                 env: child_env,
@@ -676,7 +779,16 @@ impl Interpreter {
             Expr::ArrayLiteral(elements) => {
                 let mut vals = Vec::new();
                 for e in elements {
-                    vals.push(self.eval_expr(e).await?);
+                    if let Expr::Spread(inner) = e {
+                        let val = self.eval_expr(inner).await?;
+                        if let PeelValue::List(l) = val {
+                            vals.extend(l.lock().unwrap().clone());
+                        } else {
+                            return Err(anyhow!("Cannot spread non-list value in array"));
+                        }
+                    } else {
+                        vals.push(self.eval_expr(e).await?);
+                    }
                 }
                 Ok(PeelValue::List(Arc::new(std::sync::Mutex::new(vals))))
             }
@@ -732,6 +844,36 @@ impl Interpreter {
                 }
             }
             Expr::TypeCast { expr, .. } => self.eval_expr(expr).await,
+            Expr::OptionalChaining(target, prop) => {
+                let target_val = self.eval_expr(target).await?;
+                if target_val == PeelValue::Void || target_val == PeelValue::Option(None) {
+                    return Ok(PeelValue::Void);
+                }
+                match prop.as_ref() {
+                    Expr::Ident(field) => {
+                        if let PeelValue::Object { fields, .. } = target_val {
+                            let lock = fields.lock().unwrap();
+                            Ok(lock
+                                .get(field)
+                                .cloned()
+                                .unwrap_or(PeelValue::Void))
+                        } else {
+                            Ok(PeelValue::Void)
+                        }
+                    }
+                    _ => Ok(PeelValue::Void),
+                }
+            }
+            Expr::NullishCoalescing(left, right) => {
+                let l_val = self.eval_expr(left).await?;
+                if l_val == PeelValue::Void || l_val == PeelValue::Option(None) || l_val == PeelValue::Enum("None".to_string(), None) {
+                    self.eval_expr(right).await
+                } else {
+                    Ok(l_val)
+                }
+            }
+            Expr::Spread(_) => Err(anyhow!("Spread operator used outside of function calls or arrays")),
+            Expr::Yield(_) => Err(anyhow!("Using yield outside of a generator function is not yet supported in this basic interpreter mode. Use channels/tasks for generators.")),
             _ => Ok(PeelValue::Void),
         }
     }

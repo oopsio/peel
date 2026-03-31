@@ -53,8 +53,50 @@ pub fn register_stdlib(
     );
 
     // 2. Prototypes (Instance Methods)
+    // 2. Prototypes (Instance Methods)
     m.insert("String".to_string(), collections::register_string());
     m.insert("Array".to_string(), collections::register_array());
+    m.insert("Map".to_string(), collections::register_map());
+    m.insert("Set".to_string(), collections::register_set());
+    m.insert("WeakMap".to_string(), collections::register_weak_map());
+    m.insert("WeakSet".to_string(), collections::register_weak_set());
+
+    // 2.5 Built-in Constructors
+    e.define("Map".to_string(), PeelValue::NativeFunction(Arc::new(NativeFunc {
+        name: "Map".to_string(),
+        handler: Arc::new(|_args| {
+            Box::pin(async move {
+                Ok(PeelValue::Map(Arc::new(Mutex::new(HashMap::new()))))
+            })
+        }),
+    })));
+
+    e.define("Set".to_string(), PeelValue::NativeFunction(Arc::new(NativeFunc {
+        name: "Set".to_string(),
+        handler: Arc::new(|_args| {
+            Box::pin(async move {
+                Ok(PeelValue::Set(Arc::new(Mutex::new(std::collections::HashSet::new()))))
+            })
+        }),
+    })));
+
+    e.define("WeakMap".to_string(), PeelValue::NativeFunction(Arc::new(NativeFunc {
+        name: "WeakMap".to_string(),
+        handler: Arc::new(|_args| {
+            Box::pin(async move {
+                Ok(PeelValue::WeakMap(Arc::new(Mutex::new(HashMap::new()))))
+            })
+        }),
+    })));
+
+    e.define("WeakSet".to_string(), PeelValue::NativeFunction(Arc::new(NativeFunc {
+        name: "WeakSet".to_string(),
+        handler: Arc::new(|_args| {
+            Box::pin(async move {
+                Ok(PeelValue::WeakSet(Arc::new(Mutex::new(std::collections::HashSet::new()))))
+            })
+        }),
+    })));
 
     // 3. Built-in Modules
     // fmt module

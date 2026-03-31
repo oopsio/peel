@@ -187,6 +187,31 @@ impl Checker {
                     );
                 }
             }
+            Stmt::Class {
+                name,
+                methods,
+                getters,
+                setters,
+            } => {
+                self.structs.insert(name.clone(), vec![]);
+                let mut method_map = HashMap::new();
+                for m in methods.iter().chain(getters.iter()).chain(setters.iter()) {
+                    let param_types: Vec<PeelType> =
+                        m.params.iter().map(|p| p.ty.clone()).collect();
+                    method_map.insert(
+                        m.name.clone(),
+                        PeelType::Func {
+                            params: param_types,
+                            ret: Box::new(m.ret_ty.clone()),
+                            is_async: m.is_async,
+                        },
+                    );
+                }
+                self.methods
+                    .entry(name.clone())
+                    .or_insert_with(HashMap::new)
+                    .extend(method_map);
+            }
             _ => {}
         }
         Ok(())
@@ -376,6 +401,25 @@ impl Checker {
             Expr::TypeCast { expr, ty } => {
                 let _ = self.check_expr(expr)?;
                 Ok(ty.clone())
+            }
+            Expr::OptionalChaining(target, _prop) => {
+                let target_ty = self.check_expr(target)?;
+                Ok(PeelType::Option(Box::new(target_ty)))
+            }
+            Expr::NullishCoalescing(left, right) => {
+                let l_ty = self.check_expr(left)?;
+                let _r_ty = self.check_expr(right)?;
+                Ok(l_ty)
+            }
+            Expr::Spread(expr) => {
+                self.check_expr(expr)?;
+                Ok(PeelType::Unknown)
+            }
+            Expr::Yield(expr) => {
+                if let Some(e) = expr {
+                    self.check_expr(e)?;
+                }
+                Ok(PeelType::Unknown)
             }
         }
     }

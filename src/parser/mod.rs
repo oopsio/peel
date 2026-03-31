@@ -8,6 +8,7 @@ use logos::Logos;
 enum Precedence {
     None,
     Assignment, // =
+    NullishCoalescing, // ??
     Or,         // ||
     And,        // &&
     Equality,   // == !=
@@ -139,6 +140,8 @@ impl<'a> Parser<'a> {
             self.parse_export_stmt()?
         } else if self.match_token(Token::Struct) {
             self.parse_struct_stmt()?
+        } else if self.match_token(Token::Class) {
+            self.parse_class_stmt()?
         } else if self.match_token(Token::Extern) {
             self.parse_extern_block()?
         } else if self.match_token(Token::While) {
@@ -195,6 +198,11 @@ impl<'a> Parser<'a> {
                     is_mut = true;
                 }
 
+                let mut is_rest = false;
+                if self.match_token(Token::Spread) {
+                    is_rest = true;
+                }
+
                 let p_name = if self.match_token(Token::SelfToken) {
                     "self".to_string()
                 } else {
@@ -209,10 +217,17 @@ impl<'a> Parser<'a> {
                     return Err(self.error("Expected ':' after parameter name"));
                 };
 
+                let mut default_value = None;
+                if self.match_token(Token::Assign) {
+                    default_value = Some(self.parse_expr()?);
+                }
+
                 params.push(Param {
                     name: p_name,
                     ty: p_ty,
                     is_mut,
+                    is_rest,
+                    default_value,
                 });
 
                 if !self.match_token(Token::Comma) {
@@ -261,6 +276,47 @@ impl<'a> Parser<'a> {
         }
         self.consume(Token::RBrace, "Expected '}' after struct fields")?;
         Ok(Stmt::Struct { name, fields })
+    }
+
+    fn parse_class_stmt(&mut self) -> Result<Stmt> {
+        let name = self.consume_ident("Expected class name")?;
+        self.consume(Token::LBrace, "Expected '{' after class name")?;
+        let mut methods = Vec::new();
+        let mut getters = Vec::new();
+        let mut setters = Vec::new();
+        while !self.check(Token::RBrace) && !self.is_at_end() {
+            let is_async = self.match_token(Token::Async);
+            let mut is_get = false;
+            let mut is_set = false;
+            if !is_async {
+                if self.match_token(Token::Get) {
+                    is_get = true;
+                } else if self.match_token(Token::Set) {
+                    is_set = true;
+                }
+            }
+            // `fn` is optional in classes, but if it exists, consume it.
+            self.match_token(Token::Fn);
+            
+            if let Stmt::Func(f) = self.parse_func_stmt(is_async)? {
+                if is_get {
+                    getters.push(*f);
+                } else if is_set {
+                    setters.push(*f);
+                } else {
+                    methods.push(*f);
+                }
+            } else {
+                return Err(self.error("Expected method in class block"));
+            }
+        }
+        self.consume(Token::RBrace, "Expected '}' after class block")?;
+        Ok(Stmt::Class {
+            name,
+            methods,
+            getters,
+            setters,
+        })
     }
 
     fn parse_impl_stmt(&mut self) -> Result<Stmt> {
@@ -318,6 +374,8 @@ impl<'a> Parser<'a> {
                         name: p_name,
                         ty: p_ty,
                         is_mut,
+                        is_rest: false,
+                        default_value: None,
                     });
                     if !self.match_token(Token::Comma) {
                         break;
@@ -371,6 +429,8 @@ impl<'a> Parser<'a> {
             let err = self.parse_type()?;
             self.consume(Token::Greater, "Expected '>' after type")?;
             Ok(PeelType::Result(Box::new(ok), Box::new(err)))
+        } else if self.match_token(Token::Ident("any".to_string())) {
+            Ok(PeelType::Unknown)
         } else {
             let name = self.consume_ident("Expected type name")?;
             Ok(PeelType::Object(name))
@@ -558,6 +618,24 @@ impl<'a> Parser<'a> {
                 };
                 Ok(Expr::Return(value))
             }
+            Token::Yield => {
+                let value = if self.check(Token::RBrace)
+                    || self.check(Token::Semicolon)
+                    || self.check(Token::Comma)
+                    || self.check(Token::RParen)
+                    || self.check(Token::RBracket)
+                    || self.is_at_end()
+                {
+                    None
+                } else {
+                    Some(Box::new(self.parse_expr()?))
+                };
+                Ok(Expr::Yield(value))
+            }
+            Token::Spread => {
+                let inner = self.parse_precedence(Precedence::Assignment)?;
+                Ok(Expr::Spread(Box::new(inner)))
+            }
             Token::Ok => self.parse_enum_literal("Ok".to_string()),
             Token::Err => self.parse_enum_literal("Err".to_string()),
             Token::Some => self.parse_enum_literal("Some".to_string()),
@@ -636,12 +714,22 @@ impl<'a> Parser<'a> {
                     ty,
                 })
             }
+            Token::QuestionDot => {
+                let field = self.consume_ident("Expected field name after '?.'")?;
+                Ok(Expr::OptionalChaining(Box::new(left), Box::new(Expr::Ident(field))))
+            }
+            Token::DoubleQuestion => {
+                let precedence = self.get_precedence(&token);
+                let right = self.parse_precedence(precedence)?;
+                Ok(Expr::NullishCoalescing(Box::new(left), Box::new(right)))
+            }
             _ => Ok(left),
         }
     }
 
     fn get_precedence(&self, token: &Token) -> Precedence {
         match token {
+            Token::DoubleQuestion => Precedence::NullishCoalescing,
             Token::Or => Precedence::Or,
             Token::And => Precedence::And,
             Token::Equal | Token::NotEqual => Precedence::Equality,
@@ -651,7 +739,7 @@ impl<'a> Parser<'a> {
             Token::Plus | Token::Minus => Precedence::Term,
             Token::Star | Token::Slash => Precedence::Factor,
             Token::Colon => Precedence::Cast,
-            Token::LParen | Token::Dot | Token::LBracket | Token::Question => Precedence::Call,
+            Token::LParen | Token::Dot | Token::QuestionDot | Token::LBracket | Token::Question => Precedence::Call,
             _ => Precedence::None,
         }
     }
@@ -758,11 +846,21 @@ impl<'a> Parser<'a> {
         if self.is_at_end() {
             return None;
         }
-        if let Token::Ident(name) = self.peek() {
-            self.advance();
-            Some(name)
-        } else {
-            None
+        let token = self.peek();
+        match token {
+            Token::Ident(name) => {
+                self.advance();
+                Some(name)
+            }
+            Token::Get => {
+                self.advance();
+                Some("get".to_string())
+            }
+            Token::Set => {
+                self.advance();
+                Some("set".to_string())
+            }
+            _ => None,
         }
     }
 

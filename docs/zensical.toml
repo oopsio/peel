@@ -22,6 +22,7 @@ nav = [
     { "Structs & Enums" = "advanced/structs_enums.md" },
     { "Pattern Matching" = "advanced/pattern_matching.md" },
     { "Concurrency" = "advanced/concurrency.md" },
+    { "Modern Features" = "advanced/modern_features.md" },
   ]},
   { "Standard Library" = [
     { "Console (`fmt`)" = "std/console.md" },

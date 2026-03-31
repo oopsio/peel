@@ -1,0 +1,57 @@
+// Test Peel Advanced Features
+
+// 1. Classes with Getters, Setters, and Methods
+class Person {
+    init(name: string, age: int) {
+        self.name = name;
+        self.age = age;
+    }
+
+    get info() -> string {
+        return self.name + " (" + self.age + ")";
+    }
+
+    set info(new_age: int) {
+        self.age = new_age;
+    }
+
+    greet() {
+        fmt.println("Hello, " + self.info);
+    }
+}
+
+// 2. Default, Rest, and Spread parameters
+fn make_team(leader: string = "Alice", ...members: any) {
+    fmt.println("Leader:", leader);
+    fmt.println("Members:", members);
+}
+
+let extra_members: any = ["Charlie", "Diana"];
+make_team("Bob", "Eve", ...extra_members);
+
+// 3. Optional Chaining and Nullish Coalescing
+let config: any = {
+    settings: {
+        theme: "dark"
+    }
+};
+
+let theme: string = config?.settings?.theme ?? "light";
+let font: string = config?.settings?.font ?? "Arial";
+
+fmt.println("Theme:", theme);
+fmt.println("Font:", font);
+
+// 4. Map, Set, WeakMap, WeakSet
+let m: any = Map();
+m.set("key1", "value1");
+fmt.println("Map has key1:", m.has("key1"));
+
+let s: any = Set();
+s.add("unique_item");
+fmt.println("Set has unique_item:", s.has("unique_item"));
+
+let wm: any = WeakMap();
+let objKey: any = { id: 1 };
+wm.set(objKey, "weak_value");
+fmt.println("WeakMap get:", wm.get(objKey));

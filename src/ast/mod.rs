@@ -58,6 +58,10 @@ pub enum Expr {
         expr: Box<Expr>,
         ty: PeelType,
     },
+    OptionalChaining(Box<Expr>, Box<Expr>), // target ?. property/call
+    NullishCoalescing(Box<Expr>, Box<Expr>),
+    Spread(Box<Expr>),
+    Yield(Option<Box<Expr>>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -147,6 +151,12 @@ pub enum Stmt {
         body: String,
         declarations: Vec<Func>,
     },
+    Class {
+        name: String,
+        methods: Vec<Func>,
+        getters: Vec<Func>,
+        setters: Vec<Func>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -163,6 +173,8 @@ pub struct Param {
     pub name: String,
     pub ty: PeelType,
     pub is_mut: bool,
+    pub is_rest: bool,
+    pub default_value: Option<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
