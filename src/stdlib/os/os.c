@@ -14,10 +14,12 @@
 
 char* peel_os_get_env(const char* name) {
 #ifdef _WIN32
-    char buffer[32767]; // Max env var size
-    DWORD result = GetEnvironmentVariable(name, buffer, 32767);
-    if (result == 0) return NULL;
-    return strdup(buffer);
+    DWORD size = GetEnvironmentVariable(name, NULL, 0);
+    if (size == 0) return NULL;
+    char* buffer = (char*)malloc(size);
+    if (!buffer) return NULL;
+    GetEnvironmentVariable(name, buffer, size);
+    return buffer; // Rust will free this since peel_os_free uses free()
 #else
     char* val = getenv(name);
     if (val == NULL) return NULL;
@@ -34,17 +36,20 @@ int peel_os_set_env(const char* name, const char* value) {
 }
 
 char* peel_os_cwd() {
-    char buffer[MAX_PATH];
 #ifdef _WIN32
-    if (GetCurrentDirectory(MAX_PATH, buffer)) {
-        return strdup(buffer);
-    }
+    DWORD size = GetCurrentDirectory(0, NULL);
+    if (size == 0) return NULL;
+    char* buffer = (char*)malloc(size);
+    if (!buffer) return NULL;
+    GetCurrentDirectory(size, buffer);
+    return buffer;
 #else
+    char buffer[1024]; // Standard limit
     if (getcwd(buffer, sizeof(buffer)) != NULL) {
         return strdup(buffer);
     }
-#endif
     return NULL;
+#endif
 }
 
 char* peel_os_platform() {
@@ -89,13 +94,18 @@ long long peel_os_uptime() {
 }
 
 char* peel_os_hostname() {
-    char buffer[256];
 #ifdef _WIN32
-    DWORD size = sizeof(buffer);
+    DWORD size = 0;
+    GetComputerName(NULL, &size); // Returns required size including NULL
+    if (size == 0) size = 256;
+    char* buffer = (char*)malloc(size);
+    if (!buffer) return strdup("localhost");
     if (GetComputerName(buffer, &size)) {
-        return strdup(buffer);
+        return buffer;
     }
+    free(buffer);
 #else
+    char buffer[256];
     if (gethostname(buffer, sizeof(buffer)) == 0) {
         return strdup(buffer);
     }
@@ -106,6 +116,7 @@ char* peel_os_hostname() {
 #ifdef _WIN32
 static FILETIME prev_idle_time, prev_kernel_time, prev_user_time;
 static int first_cpu_call = 1;
+static SRWLOCK cpu_lock = SRWLOCK_INIT;
 
 static unsigned long long filetime_to_ull(FILETIME ft) {
     return ((unsigned long long)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
@@ -114,8 +125,11 @@ static unsigned long long filetime_to_ull(FILETIME ft) {
 
 double peel_os_cpu_usage() {
 #ifdef _WIN32
+    AcquireSRWLockExclusive(&cpu_lock);
+
     FILETIME idle_time, kernel_time, user_time;
     if (!GetSystemTimes(&idle_time, &kernel_time, &user_time)) {
+        ReleaseSRWLockExclusive(&cpu_lock);
         return 0.0;
     }
 
@@ -124,7 +138,8 @@ double peel_os_cpu_usage() {
         prev_kernel_time = kernel_time;
         prev_user_time = user_time;
         first_cpu_call = 0;
-        return 0.0; // Need two data points
+        ReleaseSRWLockExclusive(&cpu_lock);
+        return 0.0;
     }
 
     unsigned long long idle = filetime_to_ull(idle_time) - filetime_to_ull(prev_idle_time);
@@ -136,9 +151,13 @@ double peel_os_cpu_usage() {
     prev_kernel_time = kernel_time;
     prev_user_time = user_time;
 
-    if (kernel_plus_user == 0) return 0.0;
+    double result = 0.0;
+    if (kernel_plus_user != 0) {
+        result = (double)(kernel_plus_user - idle) / (double)kernel_plus_user * 100.0;
+    }
 
-    return (double)(kernel_plus_user - idle) / (double)kernel_plus_user * 100.0;
+    ReleaseSRWLockExclusive(&cpu_lock);
+    return result;
 #else
     // For Linux, we could read /proc/stat
     return 0.0; 
