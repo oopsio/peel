@@ -1,0 +1,27 @@
+// examples/text_demo.pel
+let msg = "  Peel Language is Awesome!  ";
+
+console.log("Original:", "'" + msg + "'");
+console.log("Trimmed:", "'" + msg.trim() + "'");
+console.log("Lower:", msg.trim().toLowerCase());
+console.log("Substring(0, 4):", msg.trim().substring(0, 4));
+
+let parts = msg.trim().split(" ");
+console.log("Split by space:", parts);
+
+let csv = "apple,banana,cherry";
+console.log("CSV split:", csv.split(","));
+
+console.log("Replaced:", msg.replace("Awesome", "Powerful"));
+
+// Regex Testing
+let email = "user@example.com";
+let pattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+
+if (email.test(pattern)) {
+    console.info("Valid email detected!");
+}
+
+let text = "The year is 2024 and 2025 is coming.";
+let digits = text.match("\\d+");
+console.log("Matches digits:", digits);

@@ -38,6 +38,241 @@ pub fn register_string() -> HashMap<String, PeelValue> {
         })),
     );
 
+    methods.insert(
+        "toLowerCase".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "toLowerCase".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let Some(PeelValue::String(s)) = args.get(0) {
+                        Ok(PeelValue::String(s.to_lowercase()))
+                    } else {
+                        Err(anyhow!("String.toLowerCase expects a string instance"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "trim".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "trim".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let Some(PeelValue::String(s)) = args.get(0) {
+                        Ok(PeelValue::String(s.trim().to_string()))
+                    } else {
+                        Err(anyhow!("String.trim expects a string instance"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "split".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "split".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::String(sep))) = (args.get(0), args.get(1)) {
+                        let parts: Vec<PeelValue> = s.split(sep).map(|p| PeelValue::String(p.to_string())).collect();
+                        Ok(PeelValue::List(Arc::new(std::sync::Mutex::new(parts))))
+                    } else {
+                        Err(anyhow!("String.split(separator: string) expects a string and a separator"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "replace".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "replace".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::String(old)), Some(PeelValue::String(new))) = (args.get(0), args.get(1), args.get(2)) {
+                        Ok(PeelValue::String(s.replacen(old, new, 1)))
+                    } else {
+                        Err(anyhow!("String.replace(old, new) expects string arguments"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "replaceAll".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "replaceAll".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::String(old)), Some(PeelValue::String(new))) = (args.get(0), args.get(1), args.get(2)) {
+                        Ok(PeelValue::String(s.replace(old, new)))
+                    } else {
+                        Err(anyhow!("String.replaceAll(old, new) expects string arguments"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "substring".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "substring".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::Int(start))) = (args.get(0), args.get(1)) {
+                        let start_val = *start as usize;
+                        let end_val = match args.get(2) {
+                            Some(PeelValue::Int(e)) => *e as usize,
+                            _ => s.len()
+                        };
+                        let start_idx = start_val.min(s.len());
+                        let end_idx = end_val.min(s.len()).max(start_idx);
+                        Ok(PeelValue::String(s[start_idx..end_idx].to_string()))
+                    } else {
+                        Err(anyhow!("String.substring(start, [end]) expects at least a start index"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "includes".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "includes".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::String(sub))) = (args.get(0), args.get(1)) {
+                        Ok(PeelValue::Bool(s.contains(sub)))
+                    } else {
+                        Err(anyhow!("String.includes(substring) expects a string argument"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "repeat".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "repeat".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::Int(n))) = (args.get(0), args.get(1)) {
+                        Ok(PeelValue::String(s.repeat(*n as usize)))
+                    } else {
+                        Err(anyhow!("String.repeat(n) expects an integer argument"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "test".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "test".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::String(pat))) = (args.get(0), args.get(1)) {
+                        let re = regex::Regex::new(pat).map_err(|e| anyhow!("Invalid regex pattern: {}", e))?;
+                        Ok(PeelValue::Bool(re.is_match(s)))
+                    } else {
+                        Err(anyhow!("String.test(pattern) expects a regex pattern string"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "match".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "match".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::String(pat))) = (args.get(0), args.get(1)) {
+                        let re = regex::Regex::new(pat).map_err(|e| anyhow!("Invalid regex pattern: {}", e))?;
+                        let matches: Vec<PeelValue> = re.captures_iter(s)
+                            .map(|cap| PeelValue::String(cap[0].to_string()))
+                            .collect();
+                        Ok(PeelValue::List(Arc::new(std::sync::Mutex::new(matches))))
+                    } else {
+                        Err(anyhow!("String.match(pattern) expects a regex pattern string"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "padStart".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "padStart".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::Int(len))) = (args.get(0), args.get(1)) {
+                        let pad_char = match args.get(2) {
+                            Some(PeelValue::String(p)) => p.clone(),
+                            _ => " ".to_string()
+                        };
+                        let target_len = *len as usize;
+                        if s.len() >= target_len {
+                            Ok(PeelValue::String(s.clone()))
+                        } else {
+                            let mut res = s.clone();
+                            while res.len() < target_len {
+                                res.insert_str(0, &pad_char);
+                            }
+                            if res.len() > target_len {
+                                res = res[res.len() - target_len..].to_string();
+                            }
+                            Ok(PeelValue::String(res))
+                        }
+                    } else {
+                        Err(anyhow!("String.padStart(length, [char]) expects at least a length"))
+                    }
+                })
+            }),
+        })),
+    );
+
+    methods.insert(
+        "padEnd".to_string(),
+        PeelValue::NativeFunction(Arc::new(NativeFunc {
+            name: "padEnd".to_string(),
+            handler: Arc::new(|args| {
+                Box::pin(async move {
+                    if let (Some(PeelValue::String(s)), Some(PeelValue::Int(len))) = (args.get(0), args.get(1)) {
+                        let pad_char = match args.get(2) {
+                            Some(PeelValue::String(p)) => p.clone(),
+                            _ => " ".to_string()
+                        };
+                        let target_len = *len as usize;
+                        if s.len() >= target_len {
+                            Ok(PeelValue::String(s.clone()))
+                        } else {
+                            let mut res = s.clone();
+                            while res.len() < target_len {
+                                res.push_str(&pad_char);
+                            }
+                            res.truncate(target_len);
+                            Ok(PeelValue::String(res))
+                        }
+                    } else {
+                        Err(anyhow!("String.padEnd(length, [char]) expects at least a length"))
+                    }
+                })
+            }),
+        })),
+    );
+
     methods
 }
 

@@ -113,7 +113,7 @@ impl Checker {
                 else_branch,
             } => {
                 let cond_ty = self.check_expr(cond)?;
-                if cond_ty != PeelType::Bool {
+                if cond_ty != PeelType::Bool && cond_ty != PeelType::Unknown {
                     return Err(anyhow!("If condition must be bool, got {:?}", cond_ty));
                 }
                 self.begin_scope();

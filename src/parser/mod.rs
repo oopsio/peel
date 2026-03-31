@@ -852,6 +852,10 @@ impl<'a> Parser<'a> {
                 self.advance();
                 Some(name)
             }
+            Token::Match => {
+                self.advance();
+                Some("match".to_string())
+            }
             Token::Get => {
                 self.advance();
                 Some("get".to_string())
@@ -859,6 +863,58 @@ impl<'a> Parser<'a> {
             Token::Set => {
                 self.advance();
                 Some("set".to_string())
+            }
+            Token::Import => {
+                self.advance();
+                Some("import".to_string())
+            }
+            Token::Export => {
+                self.advance();
+                Some("export".to_string())
+            }
+            Token::If => {
+                self.advance();
+                Some("if".to_string())
+            }
+            Token::Else => {
+                self.advance();
+                Some("else".to_string())
+            }
+            Token::For => {
+                self.advance();
+                Some("for".to_string())
+            }
+            Token::While => {
+                self.advance();
+                Some("while".to_string())
+            }
+            Token::Return => {
+                self.advance();
+                Some("return".to_string())
+            }
+            Token::Async => {
+                self.advance();
+                Some("async".to_string())
+            }
+            Token::Await => {
+                self.advance();
+                Some("await".to_string())
+            }
+            Token::Fn => {
+                self.advance();
+                Some("fn".to_string())
+            }
+            Token::Let => {
+                self.advance();
+                Some("let".to_string())
+            }
+            Token::Mut => {
+                self.advance();
+                Some("mut".to_string())
+            }
+            Token::In => {
+                self.advance();
+                Some("in".to_string())
             }
             _ => None,
         }
