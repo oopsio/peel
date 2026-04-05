@@ -17,21 +17,21 @@ nav = [
     { "Data Types" = "basics/types.md" },
     { "Control Flow" = "basics/control_flow.md" },
     { "Functions" = "basics/functions.md" },
-  ]},
+  ] },
   { "Advanced" = [
     { "Structs & Enums" = "advanced/structs_enums.md" },
     { "Pattern Matching" = "advanced/pattern_matching.md" },
     { "Concurrency" = "advanced/concurrency.md" },
     { "Modern Features" = "advanced/modern_features.md" },
-  ]},
+  ] },
   { "Standard Library" = [
     { "Console (`fmt`)" = "std/console.md" },
     { "Math" = "std/math.md" },
     { "JSON" = "std/json.md" },
-  ]},
+  ] },
   { "Tooling" = [
     { "Package Manager (`pepm`)" = "tooling/pepm.md" },
-  ]}
+  ] },
 ]
 
 [project.theme]
@@ -39,22 +39,22 @@ nav = [
 language = "en"
 
 features = [
-    "announce.dismiss",
-    "content.code.annotate",
-    "content.code.copy",
-    "content.code.select",
-    "content.footnote.tooltips",
-    "content.tabs.link",
-    "content.tooltips",
-    "navigation.footer",
-    "navigation.indexes",
-    "navigation.instant",
-    "navigation.instant.prefetch",
-    "navigation.path",
-    "navigation.sections",
-    "navigation.top",
-    "navigation.tracking",
-    "search.highlight",
+  "announce.dismiss",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
 ]
 
 [[project.theme.palette]]

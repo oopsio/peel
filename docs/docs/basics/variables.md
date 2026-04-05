@@ -31,7 +31,7 @@ println!("Mutated y: {}", y);
 
 ## Shadowing
 
-You can declare a new variable with the same name as a previous variable. This is known as *shadowing*. Shadowing is distinct from mutability because it creates a completely new variable, potentially even of a different type, while reusing the same name.
+You can declare a new variable with the same name as a previous variable. This is known as _shadowing_. Shadowing is distinct from mutability because it creates a completely new variable, potentially even of a different type, while reusing the same name.
 
 ```peel
 let spaces = "   ";
@@ -54,5 +54,3 @@ let x = 5;
 
 println!("Outer x: {}", x); // Prints 5
 ```
-
-

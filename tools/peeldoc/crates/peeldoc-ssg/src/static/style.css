@@ -62,7 +62,8 @@ body {
   font-size: 0.9rem;
 }
 
-#module-list li a:hover, #module-list li a.active {
+#module-list li a:hover,
+#module-list li a.active {
   background: #e1e4e5;
   color: #000;
 }
@@ -77,12 +78,17 @@ section {
   margin-bottom: 3rem;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-weight: normal;
   color: #000;
 }
 
-h1 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+h1 {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
 
 .doc-item {
   margin-bottom: 2.5rem;

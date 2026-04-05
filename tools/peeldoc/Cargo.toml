@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/peeldoc-parser",
-    "crates/peeldoc-models",
-    "crates/peeldoc-ssg",
-    "crates/peeldoc-cli",
+  "crates/peeldoc-parser",
+  "crates/peeldoc-models",
+  "crates/peeldoc-ssg",
+  "crates/peeldoc-cli",
 ]
 
 [workspace.dependencies]

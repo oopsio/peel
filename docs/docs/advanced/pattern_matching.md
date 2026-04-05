@@ -40,7 +40,7 @@ enum Coin {
     Penny,
     Nickel,
     Dime,
-    Quarter(UsState), 
+    Quarter(UsState),
 }
 
 fn value_in_cents(coin: Coin) -> int {
@@ -68,4 +68,3 @@ match dice_roll {
     * => reroll(), // Matches anything else
 }
 ```
-

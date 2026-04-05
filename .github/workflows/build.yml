@@ -2,9 +2,9 @@ name: Multi-Platform Build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 permissions:
   contents: read
@@ -93,11 +93,11 @@ jobs:
           BINARY_NAME="peel"
           EXTENSION=""
           if [[ "${{ matrix.os }}" == "win32" ]]; then EXTENSION=".exe"; fi
-          
+
           # Rust puts cross-compiled binaries in target/<triple>/release/
           SRC_PATH="target/${{ matrix.target }}/release/${BINARY_NAME}${EXTENSION}"
           DEST_NAME="${BINARY_NAME}-${{ matrix.os }}-${{ matrix.arch }}${EXTENSION}"
-          
+
           echo "Moving $SRC_PATH to $DEST_NAME"
           mv "$SRC_PATH" "$DEST_NAME"
           echo "FINAL_BINARY=$DEST_NAME" >> $GITHUB_ENV

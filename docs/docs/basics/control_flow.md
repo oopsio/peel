@@ -75,5 +75,3 @@ while number != 0 {
 
 println!("LIFTOFF!!!");
 ```
-
-

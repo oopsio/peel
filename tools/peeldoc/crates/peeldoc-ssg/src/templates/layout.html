@@ -1,26 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ project.name }} - peelDoc</title>
-    <link rel="stylesheet" href="{{ base_path }}/style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="{{ base_path }}/style.css" />
+  </head>
+  <body>
     <nav class="sidebar">
-        <header>
-            <a href="{{ base_path }}/index.html" class="logo-text">peelDoc</a>
-            <input type="text" id="search" placeholder="Filter..." onkeyup="filterModules()">
-        </header>
-        <ul id="module-list">
-            {% for module in project.modules %}
-            <li><a href="{{ base_path }}/modules/{{ module.name }}.html" class="{% if current_module == module.name %}active{% endif %}">{{ module.name }}</a></li>
-            {% endfor %}
-        </ul>
+      <header>
+        <a href="{{ base_path }}/index.html" class="logo-text">peelDoc</a>
+        <input type="text" id="search" placeholder="Filter..." onkeyup="filterModules()" />
+      </header>
+      <ul id="module-list">
+        {% for module in project.modules %}
+        <li>
+          <a
+            href="{{ base_path }}/modules/{{ module.name }}.html"
+            class="{% if current_module == module.name %}active{% endif %}"
+            >{{ module.name }}</a
+          >
+        </li>
+        {% endfor %}
+      </ul>
     </nav>
-    <main class="content">
-        {% block content %}{% endblock %}
-    </main>
+    <main class="content">{% block content %}{% endblock %}</main>
     <script src="{{ base_path }}/script.js"></script>
-</body>
+  </body>
 </html>

@@ -96,7 +96,7 @@ pub trait Summary {
 
 ### Trait Bounds
 
-You can enforce that a generic type `T` implements a specific trait. This is known as a *trait bound*.
+You can enforce that a generic type `T` implements a specific trait. This is known as a _trait bound_.
 
 ```peel
 pub fn notify<T: Summary>(item: &T) {

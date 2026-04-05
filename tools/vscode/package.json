@@ -1,21 +1,28 @@
 {
   "name": "peel-language-support",
   "displayName": "Peel Language Support",
-  "description": "LSP Server and IDE features for the Peel language",
   "version": "0.1.0",
-  "publisher": "Peel",
-  "engines": {
-    "vscode": "^1.80.0"
-  },
+  "description": "LSP Server and IDE features for the Peel language",
   "categories": [
-    "Programming Languages",
+    "Formatters",
     "Linters",
-    "Formatters"
+    "Programming Languages"
   ],
-  "activationEvents": [
-    "onLanguage:peel"
-  ],
+  "publisher": "Peel",
   "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -b",
+    "watch": "tsc -b -w"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.3.3"
+  },
   "contributes": {
     "languages": [
       {
@@ -38,17 +45,10 @@
       }
     ]
   },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -b",
-    "watch": "tsc -b -w"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^9.0.1"
-  },
-  "devDependencies": {
-    "@types/node": "18.x",
-    "@types/vscode": "^1.80.0",
-    "typescript": "^5.3.3"
+  "activationEvents": [
+    "onLanguage:peel"
+  ],
+  "engines": {
+    "vscode": "^1.80.0"
   }
 }

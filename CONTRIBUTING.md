@@ -13,8 +13,8 @@ Welcome to the Peel project! We're excited that you're interested in helping out
 
 ### Prerequisites
 
--   **Rust Toolchain**: You'll need the latest stable version of Rust installed.
--   **VS Code**: Recommended for development with the Peel extension.
+- **Rust Toolchain**: You'll need the latest stable version of Rust installed.
+- **VS Code**: Recommended for development with the Peel extension.
 
 ### Setup
 
@@ -41,9 +41,9 @@ Welcome to the Peel project! We're excited that you're interested in helping out
 
 ### Pull Request Guidelines
 
--   Describe the problem being solved or the feature being added.
--   Include relevant issue numbers.
--   Ensure all CI checks pass before the maintainers review.
+- Describe the problem being solved or the feature being added.
+- Include relevant issue numbers.
+- Ensure all CI checks pass before the maintainers review.
 
 ## Code of Conduct
 

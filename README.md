@@ -5,6 +5,7 @@
 Peel is a modern, high-performance programming language that empowers people to build software, just more easier.
 
 ## Developing
+
 For development, you need these tools installed on your system to get started.
 
 - [`Rust`](https://rust-lang.org/)
@@ -23,4 +24,5 @@ cargo build --release
 Then navigate to your output in `./target/release/peel.exe`.
 
 ## License
+
 Peel is licensed under the [MIT License](LICENSE).

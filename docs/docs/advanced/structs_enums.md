@@ -4,7 +4,7 @@ Structs and Enums are custom data types that let you create complex, logical dat
 
 ## Structs
 
-A struct, or *structure*, is a custom data type that lets you package together and name multiple related values that make up a meaningful group.
+A struct, or _structure_, is a custom data type that lets you package together and name multiple related values that make up a meaningful group.
 
 ### Defining a Struct
 
@@ -62,10 +62,9 @@ fn main() {
 }
 ```
 
-
 ## Enums
 
-Enums allow you to define a type by enumerating its possible *variants*. Where structs give you a way of grouping together related fields and data, like a `Rectangle` with its `width` and `height`, enums give you a way of saying a value is one of a possible set of values.
+Enums allow you to define a type by enumerating its possible _variants_. Where structs give you a way of grouping together related fields and data, like a `Rectangle` with its `width` and `height`, enums give you a way of saying a value is one of a possible set of values.
 
 ```peel
 enum IpAddrKind {

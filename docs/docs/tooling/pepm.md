@@ -1,6 +1,6 @@
 # The Peel Package Manager (`pepm`)
 
-`pepm` (pronounced *pep-um*) is the official package manager and build system for the Peel programming language. It handles dependency resolution and project management.
+`pepm` (pronounced _pep-um_) is the official package manager and build system for the Peel programming language. It handles dependency resolution and project management.
 
 ## Creating a New Project
 

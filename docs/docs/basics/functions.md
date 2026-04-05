@@ -1,6 +1,6 @@
 # Functions
 
-Functions are prevalent in Peel code. You use the `fn` keyword to declare a new function. Functions in Peel use *snake_case* as the conventional style for function and variable names.
+Functions are prevalent in Peel code. You use the `fn` keyword to declare a new function. Functions in Peel use _snake_case_ as the conventional style for function and variable names.
 
 ## Defining a Function
 
@@ -22,7 +22,7 @@ Peel execution begins in the `main` function. Other functions can be defined any
 
 ## Parameters
 
-We can define functions to have *parameters*, which are special variables that are part of a function's signature. When you define parameters, you must declare their type.
+We can define functions to have _parameters_, which are special variables that are part of a function's signature. When you define parameters, you must declare their type.
 
 ```peel
 fn print_labeled_measurement(value: int, unit_label: string) {
@@ -36,7 +36,7 @@ fn main() {
 
 ## Return Values
 
-Functions can return values to the code that calls them. We don't name return values, but we must declare their type after an arrow (`->`). 
+Functions can return values to the code that calls them. We don't name return values, but we must declare their type after an arrow (`->`).
 
 ```peel
 fn five() -> int {
@@ -54,7 +54,6 @@ fn plus_one(x: int) -> int {
     return x + 1;
 }
 ```
-
 
 ## Statements vs. Expressions
 

@@ -4,7 +4,7 @@ icon: lucide/rocket
 
 # The Peel Programming Language
 
-Welcome to the official documentation for **Peel**, a modern, fast, and safe systems and applications programming language. 
+Welcome to the official documentation for **Peel**, a modern, fast, and safe systems and applications programming language.
 
 Peel combines the safety guarantees of functional programming with the performance of systems languages, offering an ergonomic syntax that empowers developers to write reliable, thread-safe, and highly concurrent code. Let's peel back the layers and build incredible software.
 

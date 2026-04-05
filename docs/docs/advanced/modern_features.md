@@ -30,7 +30,7 @@ class Person {
 
 ## Rest, Spread, and Default Parameters
 
-Functions in Peel can now specify **default parameter values** to omit repetitive arguments. 
+Functions in Peel can now specify **default parameter values** to omit repetitive arguments.
 Additionally, **rest parameters (`...`)** collect any excess arguments into a List, and the **spread operator (`...`)** can expand Lists into function arguments or other Lists.
 
 ```peel
@@ -47,8 +47,8 @@ make_team("Bob", "Eve", ...extra_members);
 
 Working with nested values or potentially undefined fields is safer with **Optional Chaining** and **Nullish Coalescing**.
 
-*   `?.` allows accessing nested fields safely. If any link is missing, it evaluates to void without throwing.
-*   `??` returns the right-side operand when its left side is void, None, or undefined.
+- `?.` allows accessing nested fields safely. If any link is missing, it evaluates to void without throwing.
+- `??` returns the right-side operand when its left side is void, None, or undefined.
 
 ```peel
 let config = { settings: { theme: "dark" } };
@@ -80,5 +80,5 @@ Peel will support generators to pause and resume execution using `yield` combine
 
 ```peel
 // Grammar support available
-yield "value"; 
+yield "value";
 ```

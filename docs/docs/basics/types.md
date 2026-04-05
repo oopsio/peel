@@ -26,7 +26,7 @@ let y: float = 3.14;
 
 ### The Boolean Type (`bool`)
 
-A boolean type has two possible values: `true` and `false`. 
+A boolean type has two possible values: `true` and `false`.
 
 ```peel
 let t = true;

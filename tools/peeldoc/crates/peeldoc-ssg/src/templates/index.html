@@ -1,26 +1,24 @@
-{% extends "layout" %}
-
-{% block content %}
+{% extends "layout" %} {% block content %}
 <div class="hero">
-    <h1>{{ project.name }}</h1>
-    <p>{{ project.description | default(value="No description provided.") }}</p>
-    <div class="actions">
-        {% if project.modules | length > 0 %}
-        <a href="modules/{{ project.modules[0].name }}.html" class="btn">Documentation</a>
-        {% endif %}
-        <a href="#modules" class="btn">Module List</a>
-    </div>
+  <h1>{{ project.name }}</h1>
+  <p>{{ project.description | default(value="No description provided.") }}</p>
+  <div class="actions">
+    {% if project.modules | length > 0 %}
+    <a href="modules/{{ project.modules[0].name }}.html" class="btn">Documentation</a>
+    {% endif %}
+    <a href="#modules" class="btn">Module List</a>
+  </div>
 </div>
 
 <section id="modules">
-    <h2>Modules</h2>
-    <div class="module-grid">
-        {% for module in project.modules %}
-        <a href="modules/{{ module.name }}.html" class="module-card">
-            <h3>{{ module.name }}</h3>
-            <p>{{ module.items | length }} items</p>
-        </a>
-        {% endfor %}
-    </div>
+  <h2>Modules</h2>
+  <div class="module-grid">
+    {% for module in project.modules %}
+    <a href="modules/{{ module.name }}.html" class="module-card">
+      <h3>{{ module.name }}</h3>
+      <p>{{ module.items | length }} items</p>
+    </a>
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}

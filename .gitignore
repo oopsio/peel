@@ -4,3 +4,4 @@ dist
 *.obj
 *.exe
 peeldoc_**/
+node_modules/
